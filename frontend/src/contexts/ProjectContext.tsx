@@ -7,7 +7,7 @@ interface ProjectContextType {
   projects: Project[] 
   setActiveProject: (project: Project | null) => void
   loadProjects: () => Promise<void>
-  createProject: (name: string, description?: string) => Promise<void>
+  createProject: (name: string, description?: string) => Promise<Project>
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined)
