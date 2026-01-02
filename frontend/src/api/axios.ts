@@ -1,7 +1,20 @@
 import axios from 'axios'
 
+// Production'da backend URL'i, development'ta proxy kullan
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  if (import.meta.env.PROD) {
+    // Production'da backend URL'i kullan
+    return 'https://servisyonetimsistemi.onrender.com/api'
+  }
+  // Development'ta proxy kullan
+  return '/api'
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

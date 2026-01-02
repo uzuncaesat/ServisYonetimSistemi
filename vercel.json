@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://uzhan-backend.onrender.com/api/$1"
+      "destination": "https://servisyonetimsistemi.onrender.com/api/$1"
     }
   ]
 }
