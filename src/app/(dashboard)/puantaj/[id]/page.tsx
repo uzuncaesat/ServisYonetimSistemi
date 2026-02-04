@@ -1,0 +1,360 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Save } from "lucide-react";
+import Link from "next/link";
+import { useToast } from "@/components/ui/use-toast";
+import { formatCurrency, getDaysInMonth, calculateTimesheetTotals } from "@/lib/utils";
+
+interface Route {
+  id: string;
+  ad: string;
+  birimFiyat: number;
+  kdvOrani: number;
+}
+
+interface TimesheetEntry {
+  id: string;
+  tarih: string;
+  routeId: string;
+  seferSayisi: number;
+  birimFiyatSnapshot: number;
+  kdvOraniSnapshot: number;
+  route: Route;
+}
+
+interface Timesheet {
+  id: string;
+  yil: number;
+  ay: number;
+  project: {
+    id: string;
+    ad: string;
+    routes: Route[];
+  };
+  vehicle: {
+    id: string;
+    plaka: string;
+    supplier: { firmaAdi: string };
+    driver: { adSoyad: string } | null;
+  };
+  entries: TimesheetEntry[];
+}
+
+async function fetchTimesheet(id: string): Promise<Timesheet> {
+  const res = await fetch(`/api/timesheets/${id}`);
+  if (!res.ok) throw new Error("Puantaj bulunamadı");
+  return res.json();
+}
+
+async function fetchProjectRoutes(projectId: string): Promise<Route[]> {
+  const res = await fetch(`/api/routes?projectId=${projectId}`);
+  if (!res.ok) throw new Error("Güzergahlar yüklenemedi");
+  return res.json();
+}
+
+async function saveEntries(
+  timesheetId: string,
+  entries: Array<{ tarih: string; routeId: string; seferSayisi: number }>
+) {
+  const res = await fetch(`/api/timesheets/${timesheetId}/entries`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries }),
+  });
+  if (!res.ok) throw new Error("Girişler kaydedilemedi");
+  return res.json();
+}
+
+const monthNames = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+];
+
+export default function TimesheetDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [gridData, setGridData] = useState<Map<string, number>>(new Map());
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const { data: timesheet, isLoading } = useQuery({
+    queryKey: ["timesheet", id],
+    queryFn: () => fetchTimesheet(id),
+  });
+
+  const { data: routes } = useQuery({
+    queryKey: ["routes", timesheet?.project.id],
+    queryFn: () => fetchProjectRoutes(timesheet!.project.id),
+    enabled: !!timesheet?.project.id,
+  });
+
+  // Initialize grid data from existing entries
+  useEffect(() => {
+    if (timesheet?.entries) {
+      const newGridData = new Map<string, number>();
+      timesheet.entries.forEach((entry) => {
+        const day = new Date(entry.tarih).getDate();
+        const key = `${entry.routeId}-${day}`;
+        newGridData.set(key, entry.seferSayisi);
+      });
+      setGridData(newGridData);
+    }
+  }, [timesheet]);
+
+  const saveMutation = useMutation({
+    mutationFn: (entries: Array<{ tarih: string; routeId: string; seferSayisi: number }>) =>
+      saveEntries(id, entries),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timesheet", id] });
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      setHasChanges(false);
+      toast({ title: "Puantaj kaydedildi" });
+    },
+    onError: () => {
+      toast({ title: "Hata", description: "Kaydedilemedi", variant: "destructive" });
+    },
+  });
+
+  const handleCellChange = useCallback((routeId: string, day: number, value: string) => {
+    const numValue = parseInt(value) || 0;
+    const key = `${routeId}-${day}`;
+    
+    setGridData((prev) => {
+      const newData = new Map(prev);
+      if (numValue === 0) {
+        newData.delete(key);
+      } else {
+        newData.set(key, numValue);
+      }
+      return newData;
+    });
+    setHasChanges(true);
+  }, []);
+
+  const handleSave = () => {
+    if (!timesheet) return;
+
+    const entries: Array<{ tarih: string; routeId: string; seferSayisi: number }> = [];
+    const daysInMonth = getDaysInMonth(timesheet.yil, timesheet.ay);
+
+    routes?.forEach((route) => {
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${route.id}-${day}`;
+        const seferSayisi = gridData.get(key) || 0;
+        const tarih = `${timesheet.yil}-${String(timesheet.ay).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        entries.push({ tarih, routeId: route.id, seferSayisi });
+      }
+    });
+
+    saveMutation.mutate(entries);
+  };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Yükleniyor...</div>;
+  }
+
+  if (!timesheet) {
+    return <div className="p-8 text-center">Puantaj bulunamadı</div>;
+  }
+
+  const daysInMonth = getDaysInMonth(timesheet.yil, timesheet.ay);
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  // Calculate totals
+  const calculateRouteTotal = (routeId: string) => {
+    let total = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = `${routeId}-${day}`;
+      total += gridData.get(key) || 0;
+    }
+    return total;
+  };
+
+  const calculateRouteAmount = (routeId: string) => {
+    const route = routes?.find((r) => r.id === routeId);
+    if (!route) return 0;
+    return calculateRouteTotal(routeId) * route.birimFiyat;
+  };
+
+  const allEntries = routes?.flatMap((route) => {
+    const total = calculateRouteTotal(route.id);
+    if (total === 0) return [];
+    return [{
+      seferSayisi: total,
+      birimFiyatSnapshot: route.birimFiyat,
+      kdvOraniSnapshot: route.kdvOrani,
+    }];
+  }) || [];
+
+  const totals = calculateTimesheetTotals(allEntries.length > 0 ? allEntries : [{ seferSayisi: 0, birimFiyatSnapshot: 0, kdvOraniSnapshot: 20 }]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/puantaj">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">
+              Puantaj - {monthNames[timesheet.ay - 1]} {timesheet.yil}
+            </h1>
+            <p className="text-slate-500">
+              {timesheet.project.ad} | {timesheet.vehicle.plaka} | {timesheet.vehicle.supplier.firmaAdi}
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || saveMutation.isPending}
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {saveMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+        </Button>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-500">Proje</p>
+            <p className="font-medium">{timesheet.project.ad}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-500">Araç</p>
+            <p className="font-medium">{timesheet.vehicle.plaka}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-500">Tedarikçi</p>
+            <p className="font-medium">{timesheet.vehicle.supplier.firmaAdi}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-500">Şoför</p>
+            <p className="font-medium">{timesheet.vehicle.driver?.adSoyad || "-"}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Grid Table */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Sefer Girişi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!routes || routes.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              Bu projede tanımlı güzergah bulunmuyor.
+              <Link href={`/guzergahlar/yeni?projectId=${timesheet.project.id}`} className="text-primary hover:underline ml-2">
+                Güzergah ekle
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border p-2 text-left sticky left-0 bg-slate-50 min-w-[200px]">
+                      Güzergah
+                    </th>
+                    <th className="border p-2 text-right min-w-[80px]">Fiyat</th>
+                    {days.map((day) => (
+                      <th key={day} className="border p-1 text-center min-w-[40px]">
+                        {day}
+                      </th>
+                    ))}
+                    <th className="border p-2 text-center min-w-[60px]">Top.</th>
+                    <th className="border p-2 text-right min-w-[100px]">Tutar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {routes.map((route) => (
+                    <tr key={route.id}>
+                      <td className="border p-2 font-medium sticky left-0 bg-white">
+                        {route.ad}
+                      </td>
+                      <td className="border p-2 text-right text-slate-600">
+                        {formatCurrency(route.birimFiyat)}
+                      </td>
+                      {days.map((day) => {
+                        const key = `${route.id}-${day}`;
+                        const value = gridData.get(key) || "";
+                        return (
+                          <td key={day} className="border p-0">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={value}
+                              onChange={(e) =>
+                                handleCellChange(route.id, day, e.target.value)
+                              }
+                              className="w-full h-8 text-center border-0 rounded-none p-1"
+                            />
+                          </td>
+                        );
+                      })}
+                      <td className="border p-2 text-center font-medium bg-slate-50">
+                        {calculateRouteTotal(route.id)}
+                      </td>
+                      <td className="border p-2 text-right font-medium bg-slate-50">
+                        {formatCurrency(calculateRouteAmount(route.id))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hesaplama Özeti</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <p className="text-sm text-slate-500">Toplam (Net)</p>
+              <p className="text-xl font-bold">{formatCurrency(totals.toplam)}</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <p className="text-sm text-slate-500">KDV (%20)</p>
+              <p className="text-xl font-bold">{formatCurrency(totals.kdv)}</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <p className="text-sm text-slate-500">Ara Toplam</p>
+              <p className="text-xl font-bold">{formatCurrency(totals.araToplam)}</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <p className="text-sm text-slate-500">Tevkifat (5/10)</p>
+              <p className="text-xl font-bold text-red-600">-{formatCurrency(totals.tevkifat)}</p>
+            </div>
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <p className="text-sm text-primary">Fatura Tutarı</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(totals.faturaTutari)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

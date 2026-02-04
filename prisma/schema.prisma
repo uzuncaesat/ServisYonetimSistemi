@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin kullanıcı
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("USER") // ADMIN, MANAGER, USER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tedarikçi
+model Supplier {
+  id          String    @id @default(cuid())
+  firmaAdi    String
+  vergiNo     String?
+  vergiDairesi String?
+  telefon     String?
+  email       String?
+  adres       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  vehicles    Vehicle[]
+  extraWorks  ExtraWork[]
+}
+
+// Şoför
+model Driver {
+  id            String     @id @default(cuid())
+  adSoyad       String
+  telefon       String?
+  ehliyetSinifi String?
+  email         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  vehicle       Vehicle?
+  documents     Document[]
+}
+
+// Araç
+model Vehicle {
+  id          String    @id @default(cuid())
+  plaka       String    @unique
+  marka       String?
+  model       String?
+  kisiSayisi  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  supplierId  String
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  
+  driverId    String?   @unique
+  driver      Driver?   @relation(fields: [driverId], references: [id])
+  
+  projects    ProjectVehicle[]
+  timesheets  Timesheet[]
+  documents   Document[]
+  extraWorks  ExtraWork[]
+}
+
+// Proje
+model Project {
+  id              String    @id @default(cuid())
+  ad              String
+  aciklama        String?
+  baslangicTarihi DateTime?
+  bitisTarihi     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  vehicles        ProjectVehicle[]
+  routes          Route[]
+  timesheets      Timesheet[]
+  extraWorks      ExtraWork[]
+}
+
+// Proje-Araç İlişkisi (M2M)
+model ProjectVehicle {
+  id         String   @id @default(cuid())
+  assignedAt DateTime @default(now())
+  
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  vehicleId  String
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  vehicleRoutes VehicleRoute[]
+  
+  @@unique([projectId, vehicleId])
+}
+
+// Güzergah (Proje Bazlı)
+model Route {
+  id              String    @id @default(cuid())
+  ad              String
+  baslangicNoktasi String?
+  bitisNoktasi    String?
+  km              Float?
+  birimFiyat      Float     // Tedarikçiye ödenen fiyat
+  fabrikaFiyati   Float?    // Fabrikadan alınan fiyat (null ise birimFiyat kullanılır)
+  kdvOrani        Float     @default(20)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  vehicleRoutes   VehicleRoute[]
+  timesheetEntries TimesheetEntry[]
+}
+
+// Araç-Güzergah Atama
+model VehicleRoute {
+  id              String   @id @default(cuid())
+  assignedAt      DateTime @default(now())
+  
+  projectVehicleId String
+  projectVehicle   ProjectVehicle @relation(fields: [projectVehicleId], references: [id], onDelete: Cascade)
+  
+  routeId         String
+  route           Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectVehicleId, routeId])
+}
+
+// Evrak/Doküman
+model Document {
+  id          String      @id @default(cuid())
+  ownerType   String      // "VEHICLE" veya "DRIVER"
+  docType     String
+  title       String
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String
+  validFrom   DateTime?
+  validTo     DateTime?
+  createdAt   DateTime    @default(now())
+  
+  // Polymorphic relation - araç veya şoför
+  vehicleId   String?
+  vehicle     Vehicle?    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  driverId    String?
+  driver      Driver?     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+}
+
+// Puantaj (Aylık)
+model Timesheet {
+  id        String   @id @default(cuid())
+  yil       Int
+  ay        Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  entries   TimesheetEntry[]
+  
+  @@unique([projectId, vehicleId, yil, ay])
+}
+
+// Puantaj Satırı (Günlük giriş)
+model TimesheetEntry {
+  id                    String    @id @default(cuid())
+  tarih                 DateTime
+  seferSayisi           Int       @default(0)
+  birimFiyatSnapshot    Float     // Tedarikçi fiyatı snapshot
+  fabrikaFiyatSnapshot  Float?    // Fabrika fiyatı snapshot
+  kdvOraniSnapshot      Float
+  createdAt             DateTime  @default(now())
+  
+  timesheetId           String
+  timesheet             Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  
+  routeId               String
+  route                 Route     @relation(fields: [routeId], references: [id])
+  
+  @@unique([timesheetId, tarih, routeId])
+}
+
+// Ek İş / Mesai
+model ExtraWork {
+  id            String   @id @default(cuid())
+  tarih         DateTime
+  aciklama      String   // Güzergah/iş açıklaması (elle girilecek)
+  fiyat         Float    // Tedarikçiye ödenen fiyat
+  fabrikaFiyati Float?   // Fabrikadan alınan fiyat (null ise fiyat kullanılır)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  
+  vehicleId     String
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
