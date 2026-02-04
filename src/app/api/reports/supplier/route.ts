@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import PdfPrinter from "pdfmake";
+
+export const dynamic = "force-dynamic";
 import { TDocumentDefinitions, Content, TableCell } from "pdfmake/interfaces";
 import path from "path";
 
