@@ -28,7 +28,7 @@ export async function GET(
       );
     }
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         "Content-Type": document.mimeType,
         "Content-Disposition": `attachment; filename="${document.fileName}"`,
