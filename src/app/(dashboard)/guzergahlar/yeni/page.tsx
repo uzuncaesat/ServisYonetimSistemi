@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -39,7 +40,7 @@ async function createRoute(data: RouteFormData) {
   return res.json();
 }
 
-export default function NewRoutePage() {
+function NewRouteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("projectId");
@@ -234,5 +235,13 @@ export default function NewRoutePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function NewRoutePage() {
+  return (
+    <Suspense fallback={<div className="p-6">Yükleniyor...</div>}>
+      <NewRouteForm />
+    </Suspense>
   );
 }
