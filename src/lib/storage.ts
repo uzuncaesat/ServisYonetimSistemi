@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { put, get, del } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const useBlob = typeof process.env.BLOB_READ_WRITE_TOKEN === "string" && process.env.BLOB_READ_WRITE_TOKEN.length > 0;
@@ -31,7 +31,7 @@ export async function saveFile(
       access: "public",
       addRandomSuffix: false,
     });
-    return { storagePath: blob.pathname, fileName };
+    return { storagePath: blob.url, fileName };
   }
 
   const dir = ensureUploadDir(ownerType, ownerId);
@@ -45,8 +45,9 @@ export async function saveFile(
 export async function getFile(storagePath: string): Promise<Buffer | null> {
   if (useBlob) {
     try {
-      const blob = await get(storagePath);
-      const ab = await blob.arrayBuffer();
+      const res = await fetch(storagePath);
+      if (!res.ok) return null;
+      const ab = await res.arrayBuffer();
       return Buffer.from(ab);
     } catch {
       return null;
