@@ -109,7 +109,7 @@ export async function PUT(
     }
 
     // Get all routes for snapshots
-    const routeIds = [...new Set(entries.map((e: { routeId: string }) => e.routeId))];
+    const routeIds = Array.from(new Set(entries.map((e: { routeId: string }) => e.routeId)));
     const routes = await prisma.route.findMany({
       where: { id: { in: routeIds as string[] } },
     });
