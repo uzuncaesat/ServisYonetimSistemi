@@ -89,7 +89,8 @@ export default function RoutesPage() {
         actionHref="/guzergahlar/yeni"
       />
 
-      <div className="bg-white rounded-lg border">
+      <div className="overflow-x-auto min-w-0">
+        <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
