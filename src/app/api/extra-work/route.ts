@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extraWorkSchema } from "@/lib/validations/extra-work";
+import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
 
 // GET - List all extra work entries (with filters)
 export async function GET(req: NextRequest) {
@@ -59,6 +60,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const validated = extraWorkSchema.parse(body);
+
+    if (validated.fabrikaFiyati != null) {
+      const auth = await requireFactoryPriceEditAuth();
+      if (auth.error) return auth.error;
+    }
 
     const extraWork = await prisma.extraWork.create({
       data: {

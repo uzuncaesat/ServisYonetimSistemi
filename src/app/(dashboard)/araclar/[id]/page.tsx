@@ -290,7 +290,7 @@ export default function VehicleDetailPage() {
                         </Badge>
                       </div>
                       {pv.vehicleRoutes.length > 0 && (
-                        <div className="text-sm text-slate-600">
+                        <div className="text-sm text-muted-foreground">
                           <p className="font-medium mb-1">Güzergahlar:</p>
                           <ul className="list-disc list-inside">
                             {pv.vehicleRoutes.map((vr) => (

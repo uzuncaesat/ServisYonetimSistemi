@@ -226,7 +226,7 @@ export default function ReportsPage() {
             <CardTitle>Rapor İçeriği</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 text-sm text-slate-600">
+            <div className="space-y-4 text-sm text-muted-foreground">
               <div>
                 <h4 className="font-medium text-slate-900">1. Rapor Bilgileri</h4>
                 <p>Rapor numarası, tarihi ve dönemi</p>

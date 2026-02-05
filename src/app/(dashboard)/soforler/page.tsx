@@ -87,7 +87,8 @@ export default function DriversPage() {
         actionHref="/soforler/yeni"
       />
 
-      <div className="bg-white rounded-lg border">
+      <div className="overflow-x-auto min-w-0">
+        <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -108,7 +109,7 @@ export default function DriversPage() {
               </TableRow>
             ) : drivers?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Henüz şoför eklenmemiş
                 </TableCell>
               </TableRow>
@@ -116,7 +117,7 @@ export default function DriversPage() {
               drivers?.map((driver) => (
                 <TableRow 
                   key={driver.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/soforler/${driver.id}`)}
                 >
                   <TableCell className="font-medium">{driver.adSoyad}</TableCell>
@@ -162,6 +163,7 @@ export default function DriversPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

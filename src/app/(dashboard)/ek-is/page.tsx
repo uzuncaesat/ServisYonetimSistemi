@@ -435,7 +435,7 @@ export default function ExtraWorkPage() {
                       step="0.01"
                       {...register("fabrikaFiyati")}
                       placeholder="0.00"
-                      className="bg-white dark:bg-slate-800"
+                      className="bg-card"
                     />
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       Boş bırakılırsa tedarikçi fiyatı kullanılır.

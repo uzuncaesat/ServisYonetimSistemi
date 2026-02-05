@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import PdfPrinter from "pdfmake";
+import { requireFactoryReportAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 import { TDocumentDefinitions, Content, TableCell } from "pdfmake/interfaces";
@@ -39,6 +40,12 @@ export async function GET(req: NextRequest) {
     const ay = searchParams.get("ay");
     const reportType = searchParams.get("reportType") || "supplier"; // "supplier" or "factory"
     const isFactoryReport = reportType === "factory";
+
+    // Fabrika raporu için ADMIN/MANAGER yetkisi gerekli
+    if (isFactoryReport) {
+      const auth = await requireFactoryReportAuth();
+      if (auth.error) return auth.error;
+    }
 
     if (!supplierId || !yil || !ay) {
       return NextResponse.json(

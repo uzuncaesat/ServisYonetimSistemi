@@ -266,4 +266,13 @@
                 linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
     border: 2px solid transparent;
   }
+
+  /* Scrollbar hide - scroll works but scrollbar invisible */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

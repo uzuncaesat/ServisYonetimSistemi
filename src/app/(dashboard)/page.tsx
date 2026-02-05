@@ -98,7 +98,7 @@ export default function DashboardPage() {
               <Link
                 key={action.title}
                 href={action.href}
-                className="group relative block p-5 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-transparent hover:shadow-xl transition-all duration-300 overflow-hidden animate-fade-in-up"
+                className="group relative block p-5 bg-card rounded-2xl border border-border hover:border-transparent hover:shadow-xl transition-all duration-300 overflow-hidden animate-fade-in-up"
                 style={{ animationDelay: `${500 + index * 100}ms` }}
               >
                 {/* Hover gradient background */}

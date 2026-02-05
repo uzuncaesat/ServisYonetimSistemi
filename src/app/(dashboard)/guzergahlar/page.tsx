@@ -112,7 +112,7 @@ export default function RoutesPage() {
               </TableRow>
             ) : routes?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Henüz güzergah eklenmemiş
                 </TableCell>
               </TableRow>
@@ -161,6 +161,7 @@ export default function RoutesPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

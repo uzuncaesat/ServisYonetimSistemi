@@ -229,25 +229,25 @@ export default function TimesheetDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Proje</p>
+            <p className="text-sm text-muted-foreground">Proje</p>
             <p className="font-medium">{timesheet.project.ad}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Araç</p>
+            <p className="text-sm text-muted-foreground">Araç</p>
             <p className="font-medium">{timesheet.vehicle.plaka}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Tedarikçi</p>
+            <p className="text-sm text-muted-foreground">Tedarikçi</p>
             <p className="font-medium">{timesheet.vehicle.supplier.firmaAdi}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Şoför</p>
+            <p className="text-sm text-muted-foreground">Şoför</p>
             <p className="font-medium">{timesheet.vehicle.driver?.adSoyad || "-"}</p>
           </CardContent>
         </Card>
@@ -270,8 +270,8 @@ export default function TimesheetDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="border p-2 text-left sticky left-0 bg-slate-50 min-w-[200px]">
+                  <tr className="bg-muted">
+                    <th className="border p-2 text-left sticky left-0 bg-muted min-w-[200px]">
                       Güzergah
                     </th>
                     <th className="border p-2 text-right min-w-[80px]">Fiyat</th>
@@ -287,10 +287,10 @@ export default function TimesheetDetailPage() {
                 <tbody>
                   {routes.map((route) => (
                     <tr key={route.id}>
-                      <td className="border p-2 font-medium sticky left-0 bg-white">
+                      <td className="border p-2 font-medium sticky left-0 bg-background">
                         {route.ad}
                       </td>
-                      <td className="border p-2 text-right text-slate-600">
+                      <td className="border p-2 text-right text-muted-foreground">
                         {formatCurrency(route.birimFiyat)}
                       </td>
                       {days.map((day) => {
@@ -310,10 +310,10 @@ export default function TimesheetDetailPage() {
                           </td>
                         );
                       })}
-                      <td className="border p-2 text-center font-medium bg-slate-50">
+                      <td className="border p-2 text-center font-medium bg-muted">
                         {calculateRouteTotal(route.id)}
                       </td>
-                      <td className="border p-2 text-right font-medium bg-slate-50">
+                      <td className="border p-2 text-right font-medium bg-muted">
                         {formatCurrency(calculateRouteAmount(route.id))}
                       </td>
                     </tr>
@@ -332,20 +332,20 @@ export default function TimesheetDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-500">Toplam (Net)</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Toplam (Net)</p>
               <p className="text-xl font-bold">{formatCurrency(totals.toplam)}</p>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-500">KDV (%20)</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">KDV (%20)</p>
               <p className="text-xl font-bold">{formatCurrency(totals.kdv)}</p>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-500">Ara Toplam</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Ara Toplam</p>
               <p className="text-xl font-bold">{formatCurrency(totals.araToplam)}</p>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-500">Tevkifat (5/10)</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Tevkifat (5/10)</p>
               <p className="text-xl font-bold text-red-600">-{formatCurrency(totals.tevkifat)}</p>
             </div>
             <div className="bg-primary/10 p-4 rounded-lg">

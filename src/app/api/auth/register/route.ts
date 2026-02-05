@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
@@ -11,6 +12,19 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit (Upstash varsa - UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN)
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "anonymous";
+    const rateLimitError = await checkRateLimit(`register:${ip}`);
+    if (rateLimitError) return rateLimitError;
+
+    // Kayıt ALLOW_REGISTRATION=false ile kapatılabilir (şirket kullanımı için)
+    if (process.env.ALLOW_REGISTRATION === "false") {
+      return NextResponse.json(
+        { error: "Kayıt şu anda kapalı" },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const validatedData = registerSchema.parse(body);
 
