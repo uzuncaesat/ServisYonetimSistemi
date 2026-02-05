@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { routeSchema } from "@/lib/validations";
+import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
 
 // GET - Tüm güzergahları listele
 export async function GET(req: NextRequest) {
@@ -42,6 +43,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const validatedData = routeSchema.parse(body);
+
+    // Fabrika fiyatı sadece ADMIN tarafından set edilebilir
+    if (validatedData.fabrikaFiyati != null) {
+      const auth = await requireFactoryPriceEditAuth();
+      if (auth.error) return auth.error;
+    }
 
     const route = await prisma.route.create({
       data: {

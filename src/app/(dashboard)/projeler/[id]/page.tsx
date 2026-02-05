@@ -557,7 +557,7 @@ export default function ProjectDetailPage() {
                   return (
                     <div
                       key={route.id}
-                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-slate-50"
+                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50"
                     >
                       <Checkbox
                         id={`route-${route.id}`}

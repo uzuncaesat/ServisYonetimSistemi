@@ -6,28 +6,31 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // Create admin user
-  const hashedPassword = await bcrypt.hash("admin123", 10);
+  // UYARI: Production'da ADMIN_PASSWORD ve MANAGER_PASSWORD env ile güçlü şifre verin.
+  // Varsayılan şifreler sadece geliştirme içindir - şirket kullanımında MUTLAKA değiştirin.
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  const managerPassword = process.env.MANAGER_PASSWORD || "manager123";
+
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@uzhanerp.com" },
     update: { role: "ADMIN" },
     create: {
       email: "admin@uzhanerp.com",
-      password: hashedPassword,
+      password: hashedAdminPassword,
       name: "Admin",
       role: "ADMIN",
     },
   });
   console.log("Admin user created:", admin.email, "with role:", admin.role);
 
-  // Create manager user
-  const managerPassword = await bcrypt.hash("manager123", 10);
+  const hashedManagerPassword = await bcrypt.hash(managerPassword, 10);
   const manager = await prisma.user.upsert({
     where: { email: "yonetici@uzhanerp.com" },
     update: { role: "MANAGER" },
     create: {
       email: "yonetici@uzhanerp.com",
-      password: managerPassword,
+      password: hashedManagerPassword,
       name: "Yönetici",
       role: "MANAGER",
     },

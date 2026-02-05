@@ -1,0 +1,44 @@
+---
+description: Vercel deployment ve ortam degiskenleri checklist
+globs: "**/auth*.ts,**/.env*"
+alwaysApply: false
+---
+
+# Vercel Deployment Checklist
+
+## Zorunlu Ortam Degiskenleri
+
+Production'da calismasi icin Vercel'de **Settings > Environment Variables** altinda:
+
+| Degisken | Aciklama | Ornek |
+|----------|----------|-------|
+| `NEXTAUTH_SECRET` | NextAuth JWT imzalama - **ZORUNLU** | `openssl rand -base64 32` ile uret |
+| `NEXTAUTH_URL` | Uygulama URL'i | `https://servis-yonetim-sistemi-zqg6.vercel.app` |
+
+## NO_SECRET Hatasi Cozumu
+
+```
+[next-auth][error][NO_SECRET] Lütfen üretim ortamında bir `secret` tanımlayın.
+```
+
+1. **Secret uret:** `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+2. **Vercel:** Settings > Environment Variables > Add
+3. **Name:** `NEXTAUTH_SECRET` (tam olarak bu isim)
+4. **Value:** uretilen 32+ karakterlik string
+5. **Environment:** Production secili olsun
+6. **Redeploy:** Degisiklik sonrasi mutlaka yeni deploy tetikle
+
+## Sirket Kullanimi Icin Onerilen
+
+| Degisken | Aciklama |
+|----------|----------|
+| `ALLOW_REGISTRATION` | `false` - Public kayit kapatilir |
+| `ADMIN_PASSWORD` | Seed oncesi - guclu sifre (varsayilan: admin123) |
+| `MANAGER_PASSWORD` | Seed oncesi - guclu sifre (varsayilan: manager123) |
+
+**Seed sonrasi:** admin/yonetici hesaplarinin sifrelerini mutlaka degistirin.
+
+## Diger Degiskenler (Otomatik)
+
+- `DATABASE_URL` - Neon entegrasyonu otomatik ekler
+- `BLOB_READ_WRITE_TOKEN` - Vercel Blob otomatik ekler

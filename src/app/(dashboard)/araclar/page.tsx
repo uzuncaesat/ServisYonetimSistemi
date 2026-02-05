@@ -92,7 +92,8 @@ export default function VehiclesPage() {
         actionHref="/araclar/yeni"
       />
 
-      <div className="bg-white rounded-lg border">
+      <div className="overflow-x-auto min-w-0">
+        <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -114,7 +115,7 @@ export default function VehiclesPage() {
               </TableRow>
             ) : vehicles?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Henüz araç eklenmemiş
                 </TableCell>
               </TableRow>
@@ -122,7 +123,7 @@ export default function VehiclesPage() {
               vehicles?.map((vehicle) => (
                 <TableRow 
                   key={vehicle.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/araclar/${vehicle.id}`)}
                 >
                   <TableCell className="font-medium">{vehicle.plaka}</TableCell>
@@ -174,6 +175,7 @@ export default function VehiclesPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

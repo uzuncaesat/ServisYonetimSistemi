@@ -174,7 +174,7 @@ export default function EditRoutePage() {
                   step="0.01"
                   {...register("fabrikaFiyati")}
                   placeholder="200.00"
-                  className="bg-white dark:bg-slate-800"
+                  className="bg-card"
                 />
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   Bu fiyat sadece Admin ve Yönetici tarafından görülebilir. Boş bırakılırsa tedarikçi fiyatı kullanılır.

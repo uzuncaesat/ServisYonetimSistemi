@@ -31,12 +31,16 @@ const menuItems = [
   { href: "/raporlar", label: "Raporlar", icon: FileText },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
 
   return (
-    <div className="flex flex-col h-full w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white relative overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -57,7 +61,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto relative">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide relative min-h-0">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || 
@@ -67,6 +71,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden",
                 isActive

@@ -290,7 +290,7 @@ export default function DriverDetailPage() {
             {driver.vehicle && (
               <div className="pb-4 border-b">
                 <p className="text-sm text-slate-500 mb-2">Mevcut Araç</p>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">{driver.vehicle.plaka}</p>
                     <p className="text-sm text-slate-500">
@@ -322,7 +322,7 @@ export default function DriverDetailPage() {
                     .map((vehicle) => (
                       <div
                         key={vehicle.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 cursor-pointer"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
                         onClick={() => handleAssignVehicle(vehicle.id)}
                       >
                         <div>

@@ -86,7 +86,8 @@ export default function ProjectsPage() {
         actionHref="/projeler/yeni"
       />
 
-      <div className="bg-white rounded-lg border">
+      <div className="overflow-x-auto min-w-0">
+        <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -107,7 +108,7 @@ export default function ProjectsPage() {
               </TableRow>
             ) : projects?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Henüz proje eklenmemiş
                 </TableCell>
               </TableRow>
@@ -115,14 +116,14 @@ export default function ProjectsPage() {
               projects?.map((project) => (
                 <TableRow 
                   key={project.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/projeler/${project.id}`)}
                 >
                   <TableCell>
                     <div>
                       <p className="font-medium">{project.ad}</p>
                       {project.aciklama && (
-                        <p className="text-sm text-slate-500 truncate max-w-xs">
+                        <p className="text-sm text-muted-foreground truncate max-w-xs">
                           {project.aciklama}
                         </p>
                       )}
@@ -165,6 +166,7 @@ export default function ProjectsPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

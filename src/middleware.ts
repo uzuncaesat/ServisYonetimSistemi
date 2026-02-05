@@ -5,8 +5,16 @@ import { getToken } from "next-auth/jwt";
 // Giriş/kayıt gerektirmeyen sayfalar
 const publicPaths = ["/login", "/register"];
 
+// ALLOW_REGISTRATION=false ise /register -> /login yönlendir
+const registrationDisabled = process.env.ALLOW_REGISTRATION === "false";
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+
+  // Kayıt kapalıysa /register -> /login
+  if (registrationDisabled && (pathname === "/register" || pathname.startsWith("/register/"))) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
 
   // Public sayfalara herkes girebilir
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
@@ -30,6 +38,10 @@ export async function middleware(req: NextRequest) {
   });
 
   if (!token) {
+    // API çağrıları için 401 JSON; sayfa istekleri için login'e yönlendir
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", req.url);
     return NextResponse.redirect(loginUrl);
   }

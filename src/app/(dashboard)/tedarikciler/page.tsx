@@ -83,7 +83,8 @@ export default function SuppliersPage() {
         actionHref="/tedarikciler/yeni"
       />
 
-      <div className="bg-white rounded-lg border">
+      <div className="overflow-x-auto min-w-0">
+        <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -104,7 +105,7 @@ export default function SuppliersPage() {
               </TableRow>
             ) : suppliers?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Henüz tedarikçi eklenmemiş
                 </TableCell>
               </TableRow>
@@ -112,7 +113,7 @@ export default function SuppliersPage() {
               suppliers?.map((supplier) => (
                 <TableRow 
                   key={supplier.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/tedarikciler/${supplier.id}`)}
                 >
                   <TableCell className="font-medium">{supplier.firmaAdi}</TableCell>
@@ -141,6 +142,7 @@ export default function SuppliersPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
