@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: fetchDashboardStats,
+    staleTime: 0,
   });
 
   const cards = [
