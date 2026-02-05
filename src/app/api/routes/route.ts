@@ -3,14 +3,29 @@ import { prisma } from "@/lib/prisma";
 import { routeSchema } from "@/lib/validations";
 import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
 
-// GET - Tüm güzergahları listele
+// GET - Tüm güzergahları listele (vehicleId verilirse sadece o araca atanmış güzergahlar)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
+    const vehicleId = searchParams.get("vehicleId");
+
+    const where: Parameters<typeof prisma.route.findMany>[0]["where"] = projectId ? { projectId } : {};
+
+    // vehicleId verilirse sadece o araca atanmış güzergahları filtrele
+    if (projectId && vehicleId) {
+      where.vehicleRoutes = {
+        some: {
+          projectVehicle: {
+            projectId,
+            vehicleId,
+          },
+        },
+      };
+    }
 
     const routes = await prisma.route.findMany({
-      where: projectId ? { projectId } : undefined,
+      where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { createdAt: "desc" },
       include: {
         project: {
