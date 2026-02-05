@@ -53,8 +53,9 @@ async function fetchTimesheet(id: string): Promise<Timesheet> {
   return res.json();
 }
 
-async function fetchProjectRoutes(projectId: string): Promise<Route[]> {
-  const res = await fetch(`/api/routes?projectId=${projectId}`);
+async function fetchProjectRoutes(projectId: string, vehicleId: string): Promise<Route[]> {
+  const params = new URLSearchParams({ projectId, vehicleId });
+  const res = await fetch(`/api/routes?${params}`);
   if (!res.ok) throw new Error("Güzergahlar yüklenemedi");
   return res.json();
 }
@@ -93,9 +94,9 @@ export default function TimesheetDetailPage() {
   });
 
   const { data: routes } = useQuery({
-    queryKey: ["routes", timesheet?.project.id],
-    queryFn: () => fetchProjectRoutes(timesheet!.project.id),
-    enabled: !!timesheet?.project.id,
+    queryKey: ["routes", timesheet?.project.id, timesheet?.vehicle.id],
+    queryFn: () => fetchProjectRoutes(timesheet!.project.id, timesheet!.vehicle.id),
+    enabled: !!timesheet?.project.id && !!timesheet?.vehicle.id,
   });
 
   // Initialize grid data from existing entries
