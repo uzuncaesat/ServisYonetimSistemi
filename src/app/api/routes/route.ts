@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { routeSchema } from "@/lib/validations";
 import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
     const projectId = searchParams.get("projectId");
     const vehicleId = searchParams.get("vehicleId");
 
-    const where: Parameters<typeof prisma.route.findMany>[0]["where"] = projectId ? { projectId } : {};
+    const where: Prisma.RouteWhereInput = projectId ? { projectId } : {};
 
     // vehicleId verilirse sadece o araca atanmış güzergahları filtrele
     if (projectId && vehicleId) {
