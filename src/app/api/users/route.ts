@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/api-auth";
 
+export const dynamic = "force-dynamic";
+
 // GET - Tüm kullanıcıları listele (sadece ADMIN)
 export async function GET() {
   try {

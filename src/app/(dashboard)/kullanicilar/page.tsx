@@ -23,8 +23,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { canManageUsers } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
+import { Settings } from "lucide-react";
+
+const DEFAULT_REPORT_TYPE_KEY = "default_report_price_type";
 
 interface User {
   id: string;
@@ -40,6 +44,22 @@ async function fetchUsers(): Promise<User[]> {
     if (res.status === 403) throw new Error("Yetkiniz yok");
     throw new Error("Kullanıcılar yüklenemedi");
   }
+  return res.json();
+}
+
+async function fetchSettings(): Promise<Record<string, string>> {
+  const res = await fetch("/api/settings");
+  if (!res.ok) throw new Error("Ayarlar yüklenemedi");
+  return res.json();
+}
+
+async function updateSetting(key: string, value: string) {
+  const res = await fetch("/api/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
+  if (!res.ok) throw new Error("Ayar güncellenemedi");
   return res.json();
 }
 
@@ -79,6 +99,26 @@ export default function UsersPage() {
     queryKey: ["users"],
     queryFn: fetchUsers,
     enabled: !!session && canAccess,
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchSettings,
+    enabled: !!session && canAccess,
+  });
+
+  const defaultReportType = settings?.[DEFAULT_REPORT_TYPE_KEY] || "supplier";
+
+  const settingMutation = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) =>
+      updateSetting(key, value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast({ title: "Ayar kaydedildi" });
+    },
+    onError: () => {
+      toast({ title: "Hata", description: "Ayar güncellenemedi", variant: "destructive" });
+    },
   });
 
   const updateMutation = useMutation({

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/api-auth";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_ROLES = ["USER", "MANAGER", "ADMIN"] as const;
 
 // PATCH - Kullanıcı rolünü güncelle (sadece ADMIN)
