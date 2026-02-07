@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { canEditFactoryPrice, canGenerateFactoryReport } from "@/lib/auth";
+import { canEditFactoryPrice, canGenerateFactoryReport, canManageUsers } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 /**
@@ -39,6 +39,21 @@ export async function requireFactoryPriceEditAuth() {
     return {
       session: null,
       error: NextResponse.json({ error: "Fabrika fiyatı düzenleme yetkiniz yok" }, { status: 403 }),
+    };
+  }
+  return { session, error: null };
+}
+
+/**
+ * Require ADMIN for user management.
+ */
+export async function requireAdminAuth() {
+  const { session, error } = await requireAuth();
+  if (error) return { session: null, error };
+  if (!canManageUsers(session!.user.role)) {
+    return {
+      session: null,
+      error: NextResponse.json({ error: "Kullanıcı yönetimi yetkiniz yok" }, { status: 403 }),
     };
   }
   return { session, error: null };

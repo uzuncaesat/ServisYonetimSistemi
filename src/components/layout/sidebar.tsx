@@ -7,6 +7,7 @@ import {
   Building2,
   Car,
   Users,
+  UserCog,
   FolderKanban,
   ClipboardList,
   FileText,
@@ -29,6 +30,7 @@ const menuItems = [
   { href: "/puantaj", label: "Puantaj", icon: ClipboardList },
   { href: "/ek-is", label: "Ek İş/Mesai", icon: Briefcase },
   { href: "/raporlar", label: "Raporlar", icon: FileText },
+  { href: "/kullanicilar", label: "Kullanıcılar", icon: UserCog, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -62,7 +64,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide relative min-h-0">
-        {menuItems.map((item, index) => {
+        {menuItems.filter((item) => !("adminOnly" in item && item.adminOnly) || session?.user?.role === "ADMIN").map((item, index) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || 
             (item.href !== "/" && pathname.startsWith(item.href));

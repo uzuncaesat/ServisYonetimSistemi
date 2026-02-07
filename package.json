@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node scripts/migrate-deploy.js && next build",
+    "build": "prisma generate && node scripts/migrate-deploy.js && node scripts/ensure-admin.js && next build",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:ensure-admin": "npx tsx prisma/ensure-admin.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
