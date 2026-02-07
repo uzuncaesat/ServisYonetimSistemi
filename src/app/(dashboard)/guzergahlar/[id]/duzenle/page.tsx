@@ -74,6 +74,7 @@ export default function EditRoutePage() {
     mutationFn: (data: RouteFormData) => updateRoute(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["routes"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["route", id] });
       queryClient.invalidateQueries({ queryKey: ["project", route?.projectId] });
       toast({ title: "Güzergah güncellendi" });

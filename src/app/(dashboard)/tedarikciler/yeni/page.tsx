@@ -41,6 +41,7 @@ export default function NewSupplierPage() {
     mutationFn: createSupplier,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Tedarikçi oluşturuldu" });
       router.push("/tedarikciler");
     },

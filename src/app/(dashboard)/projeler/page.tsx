@@ -69,6 +69,7 @@ export default function ProjectsPage() {
     mutationFn: deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Proje silindi" });
       setDeleteId(null);
     },

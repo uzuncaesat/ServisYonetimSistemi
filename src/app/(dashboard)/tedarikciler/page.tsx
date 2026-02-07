@@ -66,6 +66,7 @@ export default function SuppliersPage() {
     mutationFn: deleteSupplier,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Tedarikçi silindi" });
       setDeleteId(null);
     },

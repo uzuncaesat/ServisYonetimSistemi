@@ -69,6 +69,7 @@ export default function EditSupplierPage() {
     mutationFn: (data: SupplierFormData) => updateSupplier(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["supplier", id] });
       toast({ title: "Tedarikçi güncellendi" });
       router.push(`/tedarikciler/${id}`);

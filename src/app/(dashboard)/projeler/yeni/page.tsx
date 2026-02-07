@@ -41,6 +41,7 @@ export default function NewProjectPage() {
     mutationFn: createProject,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Proje oluşturuldu" });
       router.push(`/projeler/${data.id}`);
     },

@@ -40,6 +40,7 @@ export default function NewDriverPage() {
     mutationFn: createDriver,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Şoför oluşturuldu" });
       router.push("/soforler");
     },

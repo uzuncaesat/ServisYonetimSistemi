@@ -75,6 +75,7 @@ export default function VehiclesPage() {
     mutationFn: deleteVehicle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Araç silindi" });
       setDeleteId(null);
     },
