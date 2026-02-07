@@ -126,6 +126,7 @@ export default function TimesheetPage() {
     mutationFn: createTimesheet,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       router.push(`/puantaj/${data.id}`);
     },
     onError: () => {

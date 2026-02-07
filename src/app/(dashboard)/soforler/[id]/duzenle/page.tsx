@@ -66,6 +66,7 @@ export default function EditDriverPage() {
     mutationFn: (data: DriverFormData) => updateDriver(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["driver", id] });
       toast({ title: "Şoför güncellendi" });
       router.push(`/soforler/${id}`);

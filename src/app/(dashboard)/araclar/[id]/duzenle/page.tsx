@@ -108,6 +108,7 @@ export default function EditVehiclePage() {
     mutationFn: (data: VehicleFormData) => updateVehicle(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["vehicle", id] });
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       toast({ title: "Araç güncellendi" });

@@ -72,6 +72,7 @@ export default function RoutesPage() {
     mutationFn: deleteRoute,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["routes"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Güzergah silindi" });
       setDeleteId(null);
     },

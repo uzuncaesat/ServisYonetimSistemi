@@ -78,6 +78,7 @@ function NewRouteForm() {
     mutationFn: createRoute,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["routes"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["project", data.projectId] });
       toast({ title: "Güzergah oluşturuldu" });
       if (preselectedProjectId) {

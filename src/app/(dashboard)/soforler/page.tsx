@@ -70,6 +70,7 @@ export default function DriversPage() {
     mutationFn: deleteDriver,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast({ title: "Şoför silindi" });
       setDeleteId(null);
     },

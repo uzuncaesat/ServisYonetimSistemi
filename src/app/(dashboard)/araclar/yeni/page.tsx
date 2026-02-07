@@ -77,6 +77,7 @@ export default function NewVehiclePage() {
     mutationFn: createVehicle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       toast({ title: "Araç oluşturuldu" });
       router.push("/araclar");

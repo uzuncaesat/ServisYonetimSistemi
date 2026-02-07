@@ -71,6 +71,7 @@ export default function EditProjectPage() {
     mutationFn: (data: ProjectFormData) => updateProject(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["project", id] });
       toast({ title: "Proje güncellendi" });
       router.push(`/projeler/${id}`);
