@@ -6,7 +6,7 @@ import { Building2, Car, Users, FolderKanban, Route, ClipboardList, ArrowRight, 
 import Link from "next/link";
 
 async function fetchDashboardStats() {
-  const res = await fetch("/api/dashboard/stats");
+  const res = await fetch("/api/dashboard/stats", { cache: "no-store" });
   if (!res.ok) throw new Error("İstatistikler yüklenemedi");
   return res.json();
 }
@@ -16,6 +16,8 @@ export default function DashboardPage() {
     queryKey: ["dashboard-stats"],
     queryFn: fetchDashboardStats,
     staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const cards = [
