@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extraWorkSchema } from "@/lib/validations/extra-work";
-import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
+import { requireAuth, requireFactoryPriceEditAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - Get single extra work entry
 export async function GET(
@@ -9,8 +9,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const extraWork = await prisma.extraWork.findUnique({
-      where: { id: params.id },
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const extraWork = await prisma.extraWork.findFirst({
+      where: { id: params.id, project: { ...getOrgFilter(session!) } },
       include: {
         supplier: true,
         vehicle: true,
@@ -41,6 +44,20 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    // Verify the extra work belongs to the user's org
+    const existing = await prisma.extraWork.findFirst({
+      where: { id: params.id, project: { ...getOrgFilter(session!) } },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Ek iş bulunamadı" },
+        { status: 404 }
+      );
+    }
+
     const body = await req.json();
     const validated = extraWorkSchema.parse(body);
 
@@ -95,6 +112,20 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    // Verify the extra work belongs to the user's org
+    const existing = await prisma.extraWork.findFirst({
+      where: { id: params.id, project: { ...getOrgFilter(session!) } },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Ek iş bulunamadı" },
+        { status: 404 }
+      );
+    }
+
     await prisma.extraWork.delete({
       where: { id: params.id },
     });

@@ -16,6 +16,8 @@ import {
   Briefcase,
   Truck,
   ChevronRight,
+  Bell,
+  CreditCard,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,8 @@ const menuItems = [
   { href: "/puantaj", label: "Puantaj", icon: ClipboardList },
   { href: "/ek-is", label: "Ek İş/Mesai", icon: Briefcase },
   { href: "/raporlar", label: "Raporlar", icon: FileText },
+  { href: "/bildirimler", label: "Bildirimler", icon: Bell },
+  { href: "/ayarlar/abonelik", label: "Abonelik", icon: CreditCard, adminOnly: true },
   { href: "/kullanicilar", label: "Kullanıcılar", icon: UserCog, adminOnly: true },
 ];
 
@@ -127,9 +131,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                     ? "bg-red-500/20 text-red-300" 
                     : session.user.role === "MANAGER"
                     ? "bg-amber-500/20 text-amber-300"
+                    : session.user.role === "SUPPLIER"
+                    ? "bg-green-500/20 text-green-300"
                     : "bg-blue-500/20 text-blue-300"
                 }`}>
-                  {session.user.role === "ADMIN" ? "Admin" : session.user.role === "MANAGER" ? "Yönetici" : "Kullanıcı"}
+                  {session.user.role === "ADMIN" ? "Admin" : session.user.role === "MANAGER" ? "Yönetici" : session.user.role === "SUPPLIER" ? "Tedarikçi" : "Kullanıcı"}
                 </span>
               )}
             </div>

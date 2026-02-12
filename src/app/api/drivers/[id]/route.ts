@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { driverSchema } from "@/lib/validations";
+import { requireAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - Tek şoför detayı
 export async function GET(
@@ -8,6 +9,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const driver = await prisma.driver.findUnique({
       where: { id: params.id },
       include: {
@@ -29,6 +33,10 @@ export async function GET(
       );
     }
 
+    if (session!.user.organizationId && driver.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     return NextResponse.json(driver);
   } catch (error) {
     console.error("Driver GET error:", error);
@@ -45,6 +53,14 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const existing = await prisma.driver.findUnique({ where: { id: params.id } });
+    if (existing && session!.user.organizationId && existing.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     const body = await req.json();
     const validatedData = driverSchema.parse(body);
 
@@ -75,6 +91,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const existing = await prisma.driver.findUnique({ where: { id: params.id } });
+    if (existing && session!.user.organizationId && existing.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     await prisma.driver.delete({
       where: { id: params.id },
     });

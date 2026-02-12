@@ -139,6 +139,8 @@ export default function UsersPage() {
         return "destructive";
       case "MANAGER":
         return "default";
+      case "SUPPLIER":
+        return "outline";
       default:
         return "secondary";
     }
@@ -150,6 +152,8 @@ export default function UsersPage() {
         return "Admin";
       case "MANAGER":
         return "Yönetici";
+      case "SUPPLIER":
+        return "Tedarikçi";
       default:
         return "Kullanıcı";
     }
@@ -228,6 +232,7 @@ export default function UsersPage() {
                           <SelectItem value="USER">Kullanıcı</SelectItem>
                           <SelectItem value="MANAGER">Yönetici</SelectItem>
                           <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="SUPPLIER">Tedarikçi</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>

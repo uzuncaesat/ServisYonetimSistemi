@@ -2,16 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { routeSchema } from "@/lib/validations";
-import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
+import { requireAuth, requireFactoryPriceEditAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - Tüm güzergahları listele (vehicleId verilirse sadece o araca atanmış güzergahlar)
 export async function GET(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
     const vehicleId = searchParams.get("vehicleId");
 
     const where: Prisma.RouteWhereInput = projectId ? { projectId } : {};
+
+    // Multi-tenant org filter through project
+    where.project = { ...getOrgFilter(session!) };
 
     // vehicleId verilirse sadece o araca atanmış güzergahları filtrele
     if (projectId && vehicleId) {

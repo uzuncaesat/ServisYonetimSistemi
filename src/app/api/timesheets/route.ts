@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { timesheetSchema } from "@/lib/validations";
+import { requireAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - Tüm puantajları listele
 export async function GET(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
     const vehicleId = searchParams.get("vehicleId");
@@ -16,6 +20,9 @@ export async function GET(req: NextRequest) {
     if (vehicleId) where.vehicleId = vehicleId;
     if (yil) where.yil = parseInt(yil);
     if (ay) where.ay = parseInt(ay);
+
+    // Multi-tenant org filter through project
+    where.project = { ...getOrgFilter(session!) };
 
     const timesheets = await prisma.timesheet.findMany({
       where,
@@ -52,6 +59,9 @@ export async function GET(req: NextRequest) {
 // POST - Yeni puantaj oluştur veya mevcut olanı getir
 export async function POST(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const body = await req.json();
     const validatedData = timesheetSchema.parse(body);
 

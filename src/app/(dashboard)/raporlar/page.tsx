@@ -89,6 +89,25 @@ export default function ReportsPage() {
       document.body.removeChild(a);
 
       toast({ title: "Rapor oluşturuldu ve indirildi" });
+
+      // Tedarikçiye bildirim gönder
+      const selectedSupplier = suppliers?.find((s) => s.id === selectedSupplierId);
+      try {
+        await fetch("/api/notifications/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "REPORT_READY",
+            title: "Rapor Hazır",
+            message: `${monthNames[selectedMonth - 1]} ${selectedYear} dönemi ${
+              reportType === "factory" ? "fabrika" : "tedarikçi"
+            } raporunuz hazırlandı.`,
+            targetSupplierId: selectedSupplierId,
+          }),
+        });
+      } catch {
+        // Bildirim gönderilmese bile rapor başarılı
+      }
     } catch (error) {
       toast({ title: "Hata", description: "Rapor oluşturulamadı", variant: "destructive" });
     } finally {

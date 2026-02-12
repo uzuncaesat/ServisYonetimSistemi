@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { supplierSchema } from "@/lib/validations";
+import { requireAuth, getOrgFilter, getOrgId } from "@/lib/api-auth";
 
 // GET - Tüm tedarikçileri listele
 export async function GET() {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const suppliers = await prisma.supplier.findMany({
+      where: { ...getOrgFilter(session!) },
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
@@ -27,11 +32,14 @@ export async function GET() {
 // POST - Yeni tedarikçi ekle
 export async function POST(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const body = await req.json();
     const validatedData = supplierSchema.parse(body);
 
     const supplier = await prisma.supplier.create({
-      data: validatedData,
+      data: { ...validatedData, organizationId: getOrgId(session!) },
     });
 
     return NextResponse.json(supplier, { status: 201 });

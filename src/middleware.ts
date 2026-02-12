@@ -3,13 +3,55 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 // Giriş/kayıt gerektirmeyen sayfalar
-const publicPaths = ["/login", "/register"];
+const publicPaths = ["/login", "/register", "/kayit"];
 
 // ALLOW_REGISTRATION=false ise /register -> /login yönlendir
 const registrationDisabled = process.env.ALLOW_REGISTRATION === "false";
 
+// Ana domain (subdomain tespiti için)
+const ROOT_DOMAIN = process.env.ROOT_DOMAIN || "uzhanerp.com";
+
+/**
+ * Subdomain tespit et: firmaa.uzhanerp.com -> "firmaa"
+ * localhost ve IP adreslerinde subdomain yok sayılır
+ */
+function getSubdomain(req: NextRequest): string | null {
+  const host = req.headers.get("host") || "";
+  
+  // localhost veya IP -> subdomain yok
+  if (host.includes("localhost") || host.includes("127.0.0.1") || host.match(/^\d+\.\d+\.\d+\.\d+/)) {
+    return null;
+  }
+
+  // Vercel preview URL -> subdomain yok
+  if (host.includes("vercel.app")) {
+    return null;
+  }
+
+  // firmaa.uzhanerp.com -> "firmaa"
+  const parts = host.split(".");
+  if (parts.length >= 3) {
+    const subdomain = parts[0];
+    // www, app gibi reserved subdomain'ler
+    if (["www", "app", "api", "admin"].includes(subdomain)) {
+      return null;
+    }
+    return subdomain;
+  }
+
+  return null;
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+
+  // Subdomain tespiti ve header'a ekleme (API'lar okuyabilsin)
+  const subdomain = getSubdomain(req);
+  const response = NextResponse.next();
+  if (subdomain) {
+    // Header olarak taşı, API route'ları bu header'dan okuyabilir
+    response.headers.set("x-org-slug", subdomain);
+  }
 
   // Kayıt kapalıysa /register -> /login
   if (registrationDisabled && (pathname === "/register" || pathname.startsWith("/register/"))) {
@@ -18,17 +60,20 @@ export async function middleware(req: NextRequest) {
 
   // Public sayfalara herkes girebilir
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return NextResponse.next();
+    return response;
   }
 
-  // API auth ve static dosyalar
+  // API auth, register, payment webhook ve static dosyalar
   if (
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/register") ||
+    pathname.startsWith("/api/payments/webhook") ||
+    pathname.startsWith("/api/cron/") ||
     pathname.startsWith("/_next") ||
     pathname.includes("favicon") ||
     pathname.includes(".")
   ) {
-    return NextResponse.next();
+    return response;
   }
 
   // Giriş kontrolü
@@ -46,7 +91,21 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // SUPPLIER rolü sadece /tedarikci/* sayfalarına erişebilir
+  const isSupplier = token.role === "SUPPLIER";
+  const isSupplierPath = pathname.startsWith("/tedarikci");
+  const isApiPath = pathname.startsWith("/api/");
+
+  if (isSupplier && !isSupplierPath && !isApiPath) {
+    return NextResponse.redirect(new URL("/tedarikci", req.url));
+  }
+
+  // Normal kullanıcılar /tedarikci/* sayfalarına erişemez (kendi rolleri dışında)
+  if (!isSupplier && isSupplierPath) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  return response;
 }
 
 export const config = {

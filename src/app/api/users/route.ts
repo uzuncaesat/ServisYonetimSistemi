@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminAuth } from "@/lib/api-auth";
+import { requireAdminAuth, getOrgFilter } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ export async function GET() {
     if (auth.error) return auth.error;
 
     const users = await prisma.user.findMany({
+      where: getOrgFilter(auth.session!),
       select: {
         id: true,
         email: true,

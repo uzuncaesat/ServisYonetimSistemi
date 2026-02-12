@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extraWorkSchema } from "@/lib/validations/extra-work";
-import { requireFactoryPriceEditAuth } from "@/lib/api-auth";
+import { requireAuth, requireFactoryPriceEditAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - List all extra work entries (with filters)
 export async function GET(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(req.url);
     const supplierId = searchParams.get("supplierId");
     const yil = searchParams.get("yil");
@@ -14,7 +17,11 @@ export async function GET(req: NextRequest) {
     const where: {
       supplierId?: string;
       tarih?: { gte: Date; lt: Date };
+      project?: Record<string, unknown>;
     } = {};
+
+    // Multi-tenant org filter through project
+    where.project = { ...getOrgFilter(session!) };
 
     if (supplierId) {
       where.supplierId = supplierId;
@@ -58,6 +65,9 @@ export async function GET(req: NextRequest) {
 // POST - Create new extra work entry
 export async function POST(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const body = await req.json();
     const validated = extraWorkSchema.parse(body);
 
