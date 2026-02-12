@@ -19,15 +19,17 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true, emailVerified: true },
+          select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true, emailVerified: true, verificationCode: true },
         });
 
         if (!user) {
           return null;
         }
 
-        if (user.emailVerified === false) {
-          return null; // E-posta doğrulanmamış, giriş engellendi
+        // Sadece e-posta doğrulama akışından geçen (verificationCode alanı dolu) ama henüz doğrulamamış kullanıcıları engelle
+        // Seed/admin veya eski kullanıcılar (verificationCode null) giriş yapabilir
+        if (user.verificationCode && user.emailVerified === false) {
+          return null; // Kayıt sonrası e-postasını doğrulamamış
         }
 
         const isPasswordValid = await bcrypt.compare(

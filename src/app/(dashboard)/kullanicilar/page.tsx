@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -24,9 +25,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { canManageUsers } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
-import { Settings } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 const DEFAULT_REPORT_TYPE_KEY = "default_report_price_type";
 
@@ -76,11 +87,21 @@ async function updateUserRole(id: string, role: string) {
   return res.json();
 }
 
+async function deleteUser(id: string) {
+  const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Kullanıcı silinemedi");
+  }
+  return res.json();
+}
+
 export default function UsersPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const canAccess = canManageUsers(session?.user?.role);
 
@@ -127,6 +148,18 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "Rol güncellendi" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hata", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: "Kullanıcı silindi" });
+      setDeleteId(null);
     },
     onError: (error: Error) => {
       toast({ title: "Hata", description: error.message, variant: "destructive" });
@@ -184,18 +217,19 @@ export default function UsersPage() {
                 <TableHead>Rol</TableHead>
                 <TableHead>Kayıt Tarihi</TableHead>
                 <TableHead className="w-[200px]">Rol Değiştir</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     Yükleniyor...
                   </TableCell>
                 </TableRow>
               ) : users?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Henüz kullanıcı bulunmuyor
                   </TableCell>
                 </TableRow>
@@ -236,6 +270,17 @@ export default function UsersPage() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(user.id)}
+                        disabled={session?.user?.id === user.id}
+                        title={session?.user?.id === user.id ? "Kendi hesabınızı silemezsiniz" : "Kullanıcıyı sil"}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -243,6 +288,24 @@ export default function UsersPage() {
           </Table>
         </div>
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Kullanıcıyı sil</AlertDialogTitle>
+          <AlertDialogDescription>
+            Bu kullanıcı kalıcı olarak silinecek. Bu işlem geri alınamaz.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
