@@ -14,12 +14,13 @@ async function main() {
   const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@uzhanerp.com" },
-    update: { role: "ADMIN" },
+    update: { role: "ADMIN", emailVerified: true },
     create: {
       email: "admin@uzhanerp.com",
       password: hashedAdminPassword,
       name: "Admin",
       role: "ADMIN",
+      emailVerified: true,
     },
   });
   console.log("Admin user created:", admin.email, "with role:", admin.role);
@@ -27,12 +28,13 @@ async function main() {
   const hashedManagerPassword = await bcrypt.hash(managerPassword, 10);
   const manager = await prisma.user.upsert({
     where: { email: "yonetici@uzhanerp.com" },
-    update: { role: "MANAGER" },
+    update: { role: "MANAGER", emailVerified: true },
     create: {
       email: "yonetici@uzhanerp.com",
       password: hashedManagerPassword,
       name: "Yönetici",
       role: "MANAGER",
+      emailVerified: true,
     },
   });
   console.log("Manager user created:", manager.email, "with role:", manager.role);

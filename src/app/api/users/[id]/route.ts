@@ -65,3 +65,61 @@ export async function PATCH(
     );
   }
 }
+
+// DELETE - Kullanıcı sil (sadece ADMIN)
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await requireAdminAuth();
+    if (auth.error) return auth.error;
+
+    const id = params.id;
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { error: "Kullanıcı bulunamadı" },
+        { status: 404 }
+      );
+    }
+
+    // Kendini silmeyi engelle
+    if (auth.session!.user.id === id) {
+      return NextResponse.json(
+        { error: "Kendi hesabınızı silemezsiniz" },
+        { status: 400 }
+      );
+    }
+
+    // Son ADMIN'ı silmeyi engelle
+    if (targetUser.role === "ADMIN") {
+      const adminCount = await prisma.user.count({
+        where: { role: "ADMIN" },
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: "Son admin kullanıcıyı silemezsiniz. En az bir ADMIN kalmalı." },
+          { status: 400 }
+        );
+      }
+    }
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Users DELETE error:", error);
+    return NextResponse.json(
+      { error: "Kullanıcı silinemedi" },
+      { status: 500 }
+    );
+  }
+}
