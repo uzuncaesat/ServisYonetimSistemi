@@ -19,11 +19,15 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true },
+          select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true, emailVerified: true },
         });
 
         if (!user) {
           return null;
+        }
+
+        if (user.emailVerified === false) {
+          return null; // E-posta doğrulanmamış, giriş engellendi
         }
 
         const isPasswordValid = await bcrypt.compare(
