@@ -171,6 +171,12 @@ export default function TimesheetDetailPage() {
   const daysInMonth = getDaysInMonth(timesheet.yil, timesheet.ay);
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+  const isWeekend = (day: number) => {
+    const d = new Date(timesheet.yil, timesheet.ay - 1, day);
+    const dow = d.getDay(); // 0 = Pazar, 6 = Cumartesi
+    return dow === 0 || dow === 6;
+  };
+
   // Calculate totals
   const calculateRouteTotal = (routeId: string) => {
     let total = 0;
@@ -277,7 +283,12 @@ export default function TimesheetDetailPage() {
                     </th>
                     <th className="border p-2 text-right min-w-[80px]">Fiyat</th>
                     {days.map((day) => (
-                      <th key={day} className="border p-1 text-center min-w-[40px]">
+                      <th
+                        key={day}
+                        className={`border p-1 text-center min-w-[40px] ${
+                          isWeekend(day) ? "bg-amber-100 dark:bg-amber-900/30" : ""
+                        }`}
+                      >
                         {day}
                       </th>
                     ))}
@@ -297,8 +308,12 @@ export default function TimesheetDetailPage() {
                       {days.map((day) => {
                         const key = `${route.id}-${day}`;
                         const value = gridData.get(key) || "";
+                        const weekend = isWeekend(day);
                         return (
-                          <td key={day} className="border p-0">
+                          <td
+                            key={day}
+                            className={`border p-0 ${weekend ? "bg-amber-100 dark:bg-amber-900/30" : ""}`}
+                          >
                             <Input
                               type="number"
                               min="0"
@@ -306,7 +321,9 @@ export default function TimesheetDetailPage() {
                               onChange={(e) =>
                                 handleCellChange(route.id, day, e.target.value)
                               }
-                              className="w-full h-8 text-center border-0 rounded-none p-1"
+                              className={`w-full h-8 text-center border-0 rounded-none p-1 ${
+                                weekend ? "bg-amber-50 dark:bg-amber-900/20 focus:bg-amber-100 dark:focus:bg-amber-900/40" : ""
+                              }`}
                             />
                           </td>
                         );
