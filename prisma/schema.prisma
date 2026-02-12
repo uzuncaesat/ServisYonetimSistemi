@@ -8,23 +8,74 @@ datasource db {
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
-// Sistem ayarları (admin tarafından yönetilir)
-model Setting {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  value     String
-  updatedAt DateTime @updatedAt
+// Organizasyon (Multi-Tenancy)
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique   // Subdomain: firmaa.uzhanerp.com
+  plan         String   @default("free") // free, starter, pro, enterprise
+  trialEndsAt  DateTime?
+  isActive     Boolean  @default(true)
+  maxVehicles  Int      @default(10)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+  suppliers    Supplier[]
+  drivers      Driver[]
+  vehicles     Vehicle[]
+  projects     Project[]
+  settings     Setting[]
 }
 
-// Admin kullanıcı
+// Sistem ayarları (organizasyon bazlı)
+model Setting {
+  id             String   @id @default(cuid())
+  key            String
+  value          String
+  updatedAt      DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([key, organizationId])
+}
+
+// Kullanıcı
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String
-  role      String   @default("USER") // ADMIN, MANAGER, USER
+  role      String   @default("USER") // ADMIN, MANAGER, USER, SUPPLIER
+  emailVerified Boolean @default(false)
+  verificationCode String?
+  verificationExpires DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Multi-Tenancy
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Tedarikçi portalı: SUPPLIER rolündeki kullanıcılar için
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  
+  notifications Notification[]
+}
+
+// Bildirim
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // DOCUMENT_EXPIRY, TIMESHEET_APPROVED, REPORT_READY
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Tedarikçi
@@ -39,8 +90,12 @@ model Supplier {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   vehicles    Vehicle[]
   extraWorks  ExtraWork[]
+  users       User[]
 }
 
 // Şoför
@@ -53,6 +108,9 @@ model Driver {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   vehicle       Vehicle?
   documents     Document[]
 }
@@ -67,6 +125,9 @@ model Vehicle {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   supplierId  String
   supplier    Supplier  @relation(fields: [supplierId], references: [id])
   
@@ -89,6 +150,9 @@ model Project {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   vehicles        ProjectVehicle[]
   routes          Route[]
   timesheets      Timesheet[]

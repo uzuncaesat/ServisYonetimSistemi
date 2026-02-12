@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { supplierSchema } from "@/lib/validations";
+import { requireAuth, getOrgFilter } from "@/lib/api-auth";
 
 // GET - Tek tedarikçi detayı
 export async function GET(
@@ -8,6 +9,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const supplier = await prisma.supplier.findUnique({
       where: { id: params.id },
       include: {
@@ -26,6 +30,10 @@ export async function GET(
       );
     }
 
+    if (session!.user.organizationId && supplier.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     return NextResponse.json(supplier);
   } catch (error) {
     console.error("Supplier GET error:", error);
@@ -42,6 +50,14 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const existing = await prisma.supplier.findUnique({ where: { id: params.id } });
+    if (existing && session!.user.organizationId && existing.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     const body = await req.json();
     const validatedData = supplierSchema.parse(body);
 
@@ -72,6 +88,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const existing = await prisma.supplier.findUnique({ where: { id: params.id } });
+    if (existing && session!.user.organizationId && existing.organizationId !== session!.user.organizationId) {
+      return NextResponse.json({ error: "Erişim reddedildi" }, { status: 403 });
+    }
+
     await prisma.supplier.delete({
       where: { id: params.id },
     });

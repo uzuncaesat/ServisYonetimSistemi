@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminAuth } from "@/lib/api-auth";
+import { requireAdminAuth, getOrgFilter, getOrgId } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +15,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get("key");
 
+    const orgFilter = getOrgFilter(auth.session!);
+
     if (key) {
-      const setting = await prisma.setting.findUnique({
-        where: { key },
+      const setting = await prisma.setting.findFirst({
+        where: { key, ...orgFilter },
       });
       return NextResponse.json(setting ? { key, value: setting.value } : null);
     }
 
     // Tüm ayarları getir
-    const settings = await prisma.setting.findMany();
+    const settings = await prisma.setting.findMany({
+      where: orgFilter,
+    });
     const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
     return NextResponse.json(settingsMap);
   } catch (error) {
@@ -51,11 +55,25 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const setting = await prisma.setting.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value },
+    const orgFilter = getOrgFilter(auth.session!);
+    const orgId = getOrgId(auth.session!);
+
+    // Find existing setting for this org
+    const existing = await prisma.setting.findFirst({
+      where: { key, ...orgFilter },
     });
+
+    let setting;
+    if (existing) {
+      setting = await prisma.setting.update({
+        where: { id: existing.id },
+        data: { value },
+      });
+    } else {
+      setting = await prisma.setting.create({
+        data: { key, value, organizationId: orgId },
+      });
+    }
 
     return NextResponse.json(setting);
   } catch (error) {

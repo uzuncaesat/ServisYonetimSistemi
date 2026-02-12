@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, Mail, Lock, Loader2, UserPlus } from "lucide-react";
+import { Truck, Mail, Lock, Loader2, UserPlus, Building2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -155,8 +155,8 @@ function LoginForm() {
               </Button>
             </form>
 
-            {/* Register link */}
-            <div className="mt-6 text-center animate-fade-in-up animation-delay-500">
+            {/* Register links */}
+            <div className="mt-6 text-center space-y-2 animate-fade-in-up animation-delay-500">
               <Link 
                 href="/register"
                 className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm transition-colors duration-300"
@@ -164,6 +164,15 @@ function LoginForm() {
                 <UserPlus className="w-4 h-4" />
                 Hesabınız yok mu? Kayıt olun
               </Link>
+              <div>
+                <Link 
+                  href="/kayit"
+                  className="inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 text-sm font-medium transition-colors duration-300"
+                >
+                  <Building2 className="w-4 h-4" />
+                  Firma hesabı oluştur (Ücretsiz Dene)
+                </Link>
+              </div>
             </div>
           </div>
         </div>

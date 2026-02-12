@@ -15,6 +15,23 @@ export async function requireAuth() {
 }
 
 /**
+ * Get the organizationId from the session for multi-tenant queries.
+ * Returns undefined if no org (backwards compatible with existing data).
+ */
+export function getOrgFilter(session: { user: { organizationId?: string | null } }) {
+  return session.user.organizationId
+    ? { organizationId: session.user.organizationId }
+    : {};
+}
+
+/**
+ * Get organizationId value (for create operations)
+ */
+export function getOrgId(session: { user: { organizationId?: string | null } }): string | undefined {
+  return session.user.organizationId || undefined;
+}
+
+/**
  * Require ADMIN or MANAGER for factory report generation.
  */
 export async function requireFactoryReportAuth() {

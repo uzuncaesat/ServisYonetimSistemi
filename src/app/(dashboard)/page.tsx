@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Car, Users, FolderKanban, Route, ClipboardList, ArrowRight, Plus, FileText, Calculator } from "lucide-react";
 import Link from "next/link";
+import { TrialBanner } from "@/components/subscription/trial-banner";
 
 async function fetchDashboardStats() {
   const res = await fetch("/api/dashboard/stats", { cache: "no-store" });
@@ -38,6 +39,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Trial Banner */}
+      <TrialBanner />
+
       {/* Header */}
       <div className="animate-fade-in-up">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { vehicleSchema } from "@/lib/validations";
+import { requireAuth, getOrgFilter, getOrgId } from "@/lib/api-auth";
 
 // GET - Tüm araçları listele
 export async function GET() {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const vehicles = await prisma.vehicle.findMany({
+      where: { ...getOrgFilter(session!) },
       orderBy: { createdAt: "desc" },
       include: {
         supplier: {
@@ -42,6 +47,9 @@ export async function GET() {
 // POST - Yeni araç ekle
 export async function POST(req: NextRequest) {
   try {
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
     const body = await req.json();
     const validatedData = vehicleSchema.parse(body);
 
@@ -65,6 +73,7 @@ export async function POST(req: NextRequest) {
         kisiSayisi: validatedData.kisiSayisi,
         supplierId: validatedData.supplierId,
         driverId: validatedData.driverId || null,
+        organizationId: getOrgId(session!),
       },
       include: {
         supplier: true,

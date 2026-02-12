@@ -19,6 +19,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true },
         });
 
         if (!user) {
@@ -39,6 +40,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role as UserRole,
+          supplierId: user.supplierId || null,
+          organizationId: user.organizationId || null,
         };
       },
     }),
@@ -54,6 +57,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.supplierId = user.supplierId || null;
+        token.organizationId = user.organizationId || null;
       }
       return token;
     },
@@ -61,6 +66,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
+        session.user.supplierId = token.supplierId as string | null;
+        session.user.organizationId = token.organizationId as string | null;
       }
       return session;
     },
@@ -82,4 +89,8 @@ export function canGenerateFactoryReport(role: UserRole | undefined): boolean {
 
 export function canManageUsers(role: UserRole | undefined): boolean {
   return role === "ADMIN";
+}
+
+export function isSupplierRole(role: UserRole | undefined): boolean {
+  return role === "SUPPLIER";
 }
