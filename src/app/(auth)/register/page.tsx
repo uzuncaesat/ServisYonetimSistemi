@@ -6,12 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, Mail, Lock, User, Loader2, ArrowLeft } from "lucide-react";
+import { Truck, Mail, Lock, User, Loader2, ArrowLeft, KeyRound } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"form" | "verify">("form");
+  const [verifyEmail, setVerifyEmail] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,9 +43,40 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         setError(data.error || "Kayıt işlemi başarısız oldu");
+      } else if (data.requiresVerification) {
+        setVerifyEmail(data.email);
+        setStep("verify");
       } else {
-        // Redirect to login page on success
         router.push("/login?registered=true");
+      }
+    } catch {
+      setError("Bir hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const code = formData.get("code") as string;
+
+    try {
+      const res = await fetch("/api/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifyEmail, code }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Doğrulama başarısız");
+      } else {
+        router.push("/login?verified=true");
       }
     } catch {
       setError("Bir hata oluştu");
@@ -91,8 +124,9 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Form */}
+          {/* Form / Doğrulama */}
           <div className="px-8 pb-10">
+            {step === "form" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2 animate-fade-in-up animation-delay-200">
                 <Label htmlFor="name" className="text-white/90 text-sm font-medium">
@@ -185,6 +219,51 @@ export default function RegisterPage() {
                 )}
               </Button>
             </form>
+            ) : (
+            <form onSubmit={handleVerifySubmit} className="space-y-4">
+              <p className="text-white/90 text-sm text-center mb-2">
+                <strong>{verifyEmail}</strong> adresine gönderilen 6 haneli kodu girin.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="code" className="text-white/90 text-sm font-medium">
+                  Doğrulama Kodu
+                </Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+                  <Input
+                    id="code"
+                    name="code"
+                    type="text"
+                    placeholder="000000"
+                    maxLength={6}
+                    required
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl text-center text-xl tracking-[0.5em] font-mono"
+                  />
+                </div>
+              </div>
+              {error && (
+                <div className="animate-fade-in bg-red-500/20 border border-red-400/30 text-red-100 text-sm text-center py-3 px-4 rounded-xl">
+                  {error}
+                </div>
+              )}
+              <Button
+                type="submit"
+                className="w-full h-12 bg-white text-teal-700 hover:bg-white/90 font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-white/20"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Doğrulanıyor...
+                  </>
+                ) : (
+                  "E-postayı Doğrula"
+                )}
+              </Button>
+            </form>
+            )}
 
             {/* Login link */}
             <div className="mt-6 text-center animate-fade-in-up animation-delay-700">

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 // Giriş/kayıt gerektirmeyen sayfalar
-const publicPaths = ["/login", "/register", "/kayit"];
+const publicPaths = ["/login", "/register"];
 
 // ALLOW_REGISTRATION=false ise /register -> /login yönlendir
 const registrationDisabled = process.env.ALLOW_REGISTRATION === "false";
@@ -58,6 +58,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Eski firma kayıt sayfası -> normal kayıta yönlendir
+  if (pathname === "/kayit" || pathname.startsWith("/kayit/")) {
+    return NextResponse.redirect(new URL("/register", req.url));
+  }
+
   // Public sayfalara herkes girebilir
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return response;
@@ -91,9 +96,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // SUPPLIER rolü sadece /tedarikci/* sayfalarına erişebilir
+  // SUPPLIER rolü sadece /tedarikci (portal) sayfalarına erişebilir - /tedarikciler (liste) ayrı
   const isSupplier = token.role === "SUPPLIER";
-  const isSupplierPath = pathname.startsWith("/tedarikci");
+  const isSupplierPath = pathname === "/tedarikci" || pathname.startsWith("/tedarikci/");
   const isApiPath = pathname.startsWith("/api/");
 
   if (isSupplier && !isSupplierPath && !isApiPath) {
