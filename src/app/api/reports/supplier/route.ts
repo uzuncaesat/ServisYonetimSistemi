@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import PdfPrinter from "pdfmake";
 import { requireFactoryReportAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 import { TDocumentDefinitions, Content, TableCell } from "pdfmake/interfaces";
 import path from "path";
+
+type TimesheetWithRelations = Prisma.TimesheetGetPayload<{
+  include: {
+    project: true;
+    vehicle: true;
+    entries: { include: { route: true } };
+  };
+}>;
+type ExtraWorkWithRelations = Prisma.ExtraWorkGetPayload<{
+  include: { project: true; vehicle: true };
+}>;
 
 // Roboto font - supports Turkish characters
 const fonts = {
@@ -61,8 +73,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    let timesheets: Awaited<ReturnType<typeof prisma.timesheet.findMany>>;
-    let extraWorks: Awaited<ReturnType<typeof prisma.extraWork.findMany>>;
+    let timesheets: TimesheetWithRelations[];
+    let extraWorks: ExtraWorkWithRelations[];
     let reportEntity: { ad: string; vergiNo?: string | null; vergiDairesi?: string | null };
 
     const startDate = new Date(parseInt(yil!), parseInt(ay!) - 1, 1);
