@@ -336,27 +336,27 @@ export async function GET(req: NextRequest) {
             width: "*",
             stack: [
               { text: "RAPOR BİLGİLERİ", style: "sectionHeader" },
-              { text: `Rapor No: ${reportNo}`, margin: [0, 5, 0, 2] },
-              { text: `Rapor Tarihi: ${formatDate(new Date())}`, margin: [0, 2, 0, 2] },
-              { text: `Dönem: ${monthNames[parseInt(ay) - 1]} ${yil}`, margin: [0, 2, 0, 2] },
-              { text: `Rapor Tipi: ${isFactoryReport ? "Fabrika Fiyatları" : "Tedarikçi Fiyatları"}`, margin: [0, 2, 0, 10], color: isFactoryReport ? "#d97706" : "#333" },
+              { text: `Rapor No: ${reportNo}`, margin: [0, 5, 0, 2] as [number, number, number, number] },
+              { text: `Rapor Tarihi: ${formatDate(new Date())}`, margin: [0, 2, 0, 2] as [number, number, number, number] },
+              { text: `Dönem: ${monthNames[parseInt(ay!) - 1]} ${yil}`, margin: [0, 2, 0, 2] as [number, number, number, number] },
+              { text: `Rapor Tipi: ${isFactoryReport ? "Fabrika Fiyatları" : "Tedarikçi Fiyatları"}`, margin: [0, 2, 0, 10] as [number, number, number, number], color: isFactoryReport ? "#d97706" : "#333" },
             ],
           },
           {
             width: "*",
             stack: [
               { text: isFactoryReport ? "PROJE BİLGİLERİ" : "TEDARİKÇİ BİLGİLERİ", style: "sectionHeader" },
-              { text: `${isFactoryReport ? "Proje" : "Firma"}: ${reportEntity.ad}`, margin: [0, 5, 0, isFactoryReport ? 10 : 2] },
+              { text: `${isFactoryReport ? "Proje" : "Firma"}: ${reportEntity.ad}`, margin: [0, 5, 0, isFactoryReport ? 10 : 2] as [number, number, number, number] },
               ...(reportEntity.vergiNo != null || reportEntity.vergiDairesi != null
                 ? [
-                    { text: `Vergi No: ${reportEntity.vergiNo || "-"}`, margin: [0, 2, 0, 2] },
-                    { text: `Vergi Dairesi: ${reportEntity.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] },
+                    { text: `Vergi No: ${reportEntity.vergiNo || "-"}`, margin: [0, 2, 0, 2] as [number, number, number, number] },
+                    { text: `Vergi Dairesi: ${reportEntity.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] as [number, number, number, number] },
                   ]
                 : []),
             ],
           },
         ],
-      },
+      } as Content,
 
       // Summary Table (Puantaj)
       {
