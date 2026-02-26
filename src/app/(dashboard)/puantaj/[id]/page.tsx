@@ -6,8 +6,23 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, Save, Layers } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, getDaysInMonth, calculateTimesheetTotals } from "@/lib/utils";
@@ -87,6 +102,12 @@ export default function TimesheetDetailPage() {
 
   const [gridData, setGridData] = useState<Map<string, number>>(new Map());
   const [hasChanges, setHasChanges] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkRouteId, setBulkRouteId] = useState<string>("");
+  const [bulkStartDay, setBulkStartDay] = useState<number>(1);
+  const [bulkEndDay, setBulkEndDay] = useState<number>(31);
+  const [bulkSeferSayisi, setBulkSeferSayisi] = useState<number>(0);
+  const [bulkIncludeWeekends, setBulkIncludeWeekends] = useState(false);
 
   const { data: timesheet, isLoading } = useQuery({
     queryKey: ["timesheet", id],
@@ -141,6 +162,31 @@ export default function TimesheetDetailPage() {
     });
     setHasChanges(true);
   }, []);
+
+  const handleBulkApply = useCallback(() => {
+    if (!timesheet || !bulkRouteId || bulkSeferSayisi <= 0) return;
+    const daysInMonth = getDaysInMonth(timesheet.yil, timesheet.ay);
+    const isWeekendDay = (day: number) => {
+      const d = new Date(timesheet.yil, timesheet.ay - 1, day);
+      const dow = d.getDay();
+      return dow === 0 || dow === 6;
+    };
+    const start = Math.max(1, Math.min(bulkStartDay, bulkEndDay));
+    const end = Math.min(daysInMonth, Math.max(bulkStartDay, bulkEndDay));
+
+    setGridData((prev) => {
+      const newData = new Map(prev);
+      for (let day = start; day <= end; day++) {
+        if (bulkIncludeWeekends || !isWeekendDay(day)) {
+          newData.set(`${bulkRouteId}-${day}`, bulkSeferSayisi);
+        }
+      }
+      return newData;
+    });
+    setHasChanges(true);
+    setBulkOpen(false);
+    toast({ title: "Toplu puantaj uygulandı", description: `${start}-${end} arası ${bulkSeferSayisi} sefer girildi.` });
+  }, [timesheet, bulkRouteId, bulkStartDay, bulkEndDay, bulkSeferSayisi, bulkIncludeWeekends, toast]);
 
   const handleSave = () => {
     if (!timesheet) return;
@@ -262,8 +308,25 @@ export default function TimesheetDetailPage() {
 
       {/* Grid Table */}
       <Card className="mb-6">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Sefer Girişi</CardTitle>
+          {routes && routes.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setBulkRouteId(routes[0]?.id ?? "");
+                setBulkStartDay(1);
+                setBulkEndDay(daysInMonth);
+                setBulkSeferSayisi(0);
+                setBulkIncludeWeekends(false);
+                setBulkOpen(true);
+              }}
+            >
+              <Layers className="w-4 h-4 mr-2" />
+              Toplu puantaj gir
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {!routes || routes.length === 0 ? (
@@ -342,6 +405,84 @@ export default function TimesheetDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Toplu puantaj dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Toplu Puantaj Gir</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Güzergah</Label>
+              <Select value={bulkRouteId} onValueChange={setBulkRouteId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Güzergah seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {routes?.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.ad} ({formatCurrency(r.birimFiyat)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Başlangıç günü (1-{daysInMonth})</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={daysInMonth}
+                  value={bulkStartDay}
+                  onChange={(e) => setBulkStartDay(parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Bitiş günü (1-{daysInMonth})</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={daysInMonth}
+                  value={bulkEndDay}
+                  onChange={(e) => setBulkEndDay(parseInt(e.target.value) || daysInMonth)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Sefer sayısı (her gün)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={bulkSeferSayisi}
+                onChange={(e) => setBulkSeferSayisi(parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="bulk-weekends"
+                checked={bulkIncludeWeekends}
+                onCheckedChange={(checked) => setBulkIncludeWeekends(checked === true)}
+              />
+              <Label htmlFor="bulk-weekends" className="cursor-pointer">
+                Hafta sonlarını dahil et (Cumartesi-Pazar)
+              </Label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setBulkOpen(false)}>
+                İptal
+              </Button>
+              <Button
+                onClick={handleBulkApply}
+                disabled={!bulkRouteId || bulkSeferSayisi <= 0}
+              >
+                Uygula
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Summary */}
       <Card>

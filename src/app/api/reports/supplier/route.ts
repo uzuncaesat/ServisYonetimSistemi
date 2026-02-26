@@ -195,6 +195,45 @@ export async function GET(req: NextRequest) {
       "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
     ];
 
+    // Önizleme isteği: JSON döndür, PDF oluşturma
+    const preview = searchParams.get("preview") === "1";
+    if (preview) {
+      return NextResponse.json({
+        reportNo,
+        reportTitle: isFactoryReport ? "FABRİKA RAPORU" : "TEDARİKÇİ RAPORU",
+        period: `${monthNames[parseInt(ay) - 1]} ${yil}`,
+        supplier: {
+          firmaAdi: supplier.firmaAdi,
+          vergiNo: supplier.vergiNo,
+          vergiDairesi: supplier.vergiDairesi,
+        },
+        summaryRows: summaryRows.map((row) => ({
+          plaka: row[0],
+          proje: row[1],
+          guzergah: row[2],
+          km: row[3],
+          sefer: row[4],
+          birimFiyat: row[5],
+          toplam: row[6],
+          kdv: row[7],
+        })),
+        extraWorkRows: extraWorkRows.map((row) => ({
+          tarih: row[0],
+          proje: row[1],
+          plaka: row[2],
+          aciklama: row[3],
+          tutar: row[4],
+        })),
+        puantajTotal,
+        extraWorkTotal,
+        grandTotal,
+        grandKdv,
+        grandAraToplam,
+        grandTevkifat,
+        grandFatura,
+      });
+    }
+
     // Build PDF content
     const reportTitle = isFactoryReport ? "FABRİKA RAPORU" : "TEDARİKÇİ RAPORU";
     const pdfContent: Content[] = [

@@ -1,13 +1,19 @@
 /**
  * E-posta gönderim modülü
  * Resend API kullanır (free tier: 3000 email/ay, 100 email/gün)
- * 
- * Kurulum: 
+ *
+ * KURULUM:
  * 1. resend.com'dan hesap aç
- * 2. API key al
+ * 2. API key al (Dashboard > API Keys)
  * 3. .env'ye RESEND_API_KEY=re_xxxxx ekle
- * 4. (Opsiyonel) RESEND_FROM_EMAIL=bildirim@alanadi.com ekle (doğrulanmış domain gerekli)
- *    Yoksa varsayılan olarak Resend onboarding maili kullanılır
+ * 4. Vercel'de: Project Settings > Environment Variables > RESEND_API_KEY ekle
+ *
+ * ÖNEMLİ - onboarding@resend.dev kısıtlaması:
+ * Varsayılan "onboarding@resend.dev" ile sadece Resend hesabına KAYITLI e-posta adresine
+ * mail gidebilir. Herhangi bir adrese göndermek için:
+ * - Resend Dashboard > Domains > Kendi domain'ini ekle (örn. uzhanerp.com)
+ * - DNS'te SPF ve DKIM kayıtlarını doğrula
+ * - .env'ye RESEND_FROM_EMAIL="UZHAN <bildirim@uzhanerp.com>" ekle
  */
 
 interface SendEmailInput {
@@ -17,12 +23,18 @@ interface SendEmailInput {
   text?: string;
 }
 
-export async function sendEmail(input: SendEmailInput): Promise<boolean> {
+export interface SendEmailResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   
   if (!apiKey) {
-    console.warn("RESEND_API_KEY tanımlı değil, e-posta gönderilmedi.");
-    return false;
+    const msg = "RESEND_API_KEY tanımlı değil - .env ve Vercel ortam değişkenlerini kontrol edin.";
+    console.warn("[Email]", msg);
+    return { success: false, error: msg };
   }
 
   const from = process.env.RESEND_FROM_EMAIL || "UZHAN ERP <onboarding@resend.dev>";
@@ -43,16 +55,19 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
       }),
     });
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Resend API error:", error);
-      return false;
+      const errMsg = (data as { message?: string }).message || JSON.stringify(data);
+      console.error("[Email] Resend API hatası:", response.status, errMsg);
+      return { success: false, error: errMsg };
     }
 
-    return true;
+    return { success: true };
   } catch (error) {
-    console.error("Email send error:", error);
-    return false;
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Email] Gönderim hatası:", errMsg);
+    return { success: false, error: errMsg };
   }
 }
 

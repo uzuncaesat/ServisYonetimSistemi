@@ -13,10 +13,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, Factory, Building2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { FileText, Download, Factory, Building2, Eye } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
 import { canGenerateFactoryReport } from "@/lib/auth";
+import { formatCurrency } from "@/lib/utils";
 
 interface Supplier {
   id: string;
@@ -48,11 +63,54 @@ export default function ReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [reportType, setReportType] = useState<ReportType>("supplier");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    reportNo: string;
+    reportTitle: string;
+    period: string;
+    supplier: { firmaAdi: string; vergiNo: string | null; vergiDairesi: string | null };
+    summaryRows: Array<{ plaka: string; proje: string; guzergah: string; km: string; sefer: string; birimFiyat: string; toplam: string; kdv: string }>;
+    extraWorkRows: Array<{ tarih: string; proje: string; plaka: string; aciklama: string; tutar: string }>;
+    puantajTotal: number;
+    extraWorkTotal: number;
+    grandTotal: number;
+    grandKdv: number;
+    grandAraToplam: number;
+    grandTevkifat: number;
+    grandFatura: number;
+  } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers"],
     queryFn: fetchSuppliers,
   });
+
+  const handlePreview = async () => {
+    if (!selectedSupplierId) {
+      toast({ title: "Hata", description: "Lütfen bir tedarikçi seçin", variant: "destructive" });
+      return;
+    }
+    if (reportType === "factory" && !canGenerateFactory) {
+      toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    try {
+      const res = await fetch(
+        `/api/reports/supplier?supplierId=${selectedSupplierId}&yil=${selectedYear}&ay=${selectedMonth}&reportType=${reportType}&preview=1`
+      );
+      if (!res.ok) throw new Error("Önizleme alınamadı");
+      const data = await res.json();
+      setPreviewData(data);
+    } catch {
+      setPreviewData(null);
+      toast({ title: "Hata", description: "Önizleme yüklenemedi", variant: "destructive" });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleGenerateReport = async () => {
     if (!selectedSupplierId) {
@@ -227,14 +285,25 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={handleGenerateReport}
-                disabled={!selectedSupplierId || isGenerating}
-                className={`w-full ${reportType === "factory" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {isGenerating ? "Oluşturuluyor..." : `PDF ${reportType === "factory" ? "Fabrika" : "Tedarikçi"} Raporu Oluştur`}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePreview}
+                  disabled={!selectedSupplierId || previewLoading}
+                  className="flex-1"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {previewLoading ? "Yükleniyor..." : "Önizleme"}
+                </Button>
+                <Button
+                  onClick={handleGenerateReport}
+                  disabled={!selectedSupplierId || isGenerating}
+                  className={`flex-1 ${reportType === "factory" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {isGenerating ? "Oluşturuluyor..." : "PDF İndir"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -276,6 +345,119 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Rapor Önizleme Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {previewData?.reportTitle} - Önizleme
+            </DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Yükleniyor...</div>
+          ) : previewData ? (
+            <div className="space-y-6 text-sm">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="font-medium text-muted-foreground">Rapor No / Dönem</p>
+                  <p className="font-semibold">{previewData.reportNo} · {previewData.period}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">Tedarikçi</p>
+                  <p className="font-semibold">{previewData.supplier.firmaAdi}</p>
+                  <p className="text-muted-foreground">
+                    V.No: {previewData.supplier.vergiNo || "-"} · {previewData.supplier.vergiDairesi || "-"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Puantaj Özeti</h4>
+                {previewData.summaryRows.length > 0 ? (
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Plaka</TableHead>
+                          <TableHead>Proje</TableHead>
+                          <TableHead>Güzergah</TableHead>
+                          <TableHead>KM</TableHead>
+                          <TableHead>Sefer</TableHead>
+                          <TableHead>Birim Fiyat</TableHead>
+                          <TableHead>Toplam</TableHead>
+                          <TableHead>KDV</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.summaryRows.map((row, i) => (
+                          <TableRow key={i}>
+                            <TableCell>{row.plaka}</TableCell>
+                            <TableCell>{row.proje}</TableCell>
+                            <TableCell>{row.guzergah}</TableCell>
+                            <TableCell>{row.km}</TableCell>
+                            <TableCell>{row.sefer}</TableCell>
+                            <TableCell>{row.birimFiyat}</TableCell>
+                            <TableCell>{row.toplam}</TableCell>
+                            <TableCell>{row.kdv}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Bu dönem için puantaj kaydı yok.</p>
+                )}
+                {previewData.summaryRows.length > 0 && (
+                  <p className="text-right font-medium mt-2">Puantaj Toplam: {formatCurrency(previewData.puantajTotal)}</p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Ek İş / Mesai</h4>
+                {previewData.extraWorkRows.length > 0 ? (
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tarih</TableHead>
+                          <TableHead>Proje</TableHead>
+                          <TableHead>Plaka</TableHead>
+                          <TableHead>Açıklama</TableHead>
+                          <TableHead>Tutar</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.extraWorkRows.map((row, i) => (
+                          <TableRow key={i}>
+                            <TableCell>{row.tarih}</TableCell>
+                            <TableCell>{row.proje}</TableCell>
+                            <TableCell>{row.plaka}</TableCell>
+                            <TableCell>{row.aciklama}</TableCell>
+                            <TableCell>{row.tutar}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Bu dönem için ek iş kaydı yok.</p>
+                )}
+              </div>
+
+              <div className="p-4 bg-primary/10 rounded-lg space-y-1">
+                <p className="flex justify-between"><span>Toplam (Net)</span><span>{formatCurrency(previewData.grandTotal)}</span></p>
+                <p className="flex justify-between"><span>KDV (%20)</span><span>{formatCurrency(previewData.grandKdv)}</span></p>
+                <p className="flex justify-between"><span>Ara Toplam</span><span>{formatCurrency(previewData.grandAraToplam)}</span></p>
+                <p className="flex justify-between text-red-600"><span>Tevkifat (5/10)</span><span>-{formatCurrency(previewData.grandTevkifat)}</span></p>
+                <p className="flex justify-between font-bold text-lg pt-2"><span>Fatura Tutarı</span><span>{formatCurrency(previewData.grandFatura)}</span></p>
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">Önizleme yüklenemedi.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

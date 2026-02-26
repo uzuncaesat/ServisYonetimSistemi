@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "verify">("form");
   const [verifyEmail, setVerifyEmail] = useState<string>("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,6 +81,38 @@ export default function RegisterPage() {
       }
     } catch {
       setError("Bir hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/register/resend-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifyEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Kod gönderilemedi");
+      } else {
+        setResendCooldown(60);
+        const interval = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch {
+      setError("Kod gönderilemedi");
     } finally {
       setLoading(false);
     }
@@ -223,6 +256,17 @@ export default function RegisterPage() {
             <form onSubmit={handleVerifySubmit} className="space-y-4">
               <p className="text-white/90 text-sm text-center mb-2">
                 <strong>{verifyEmail}</strong> adresine gönderilen 6 haneli kodu girin.
+              </p>
+              <p className="text-amber-200/90 text-xs text-center">
+                E-posta gelmediyse spam klasörünü kontrol edin veya{" "}
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendCooldown > 0 || loading}
+                  className="underline hover:no-underline font-medium"
+                >
+                  {resendCooldown > 0 ? `${resendCooldown} sn sonra tekrar gönder` : "kodu tekrar gönderin"}
+                </button>
               </p>
               <div className="space-y-2">
                 <Label htmlFor="code" className="text-white/90 text-sm font-medium">

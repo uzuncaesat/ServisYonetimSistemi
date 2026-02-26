@@ -39,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, FolderKanban, Car, Route, Plus, Trash2, MapPin } from "lucide-react";
+import { ArrowLeft, Edit, FolderKanban, Car, Route, Plus, Trash2, MapPin, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -140,6 +140,24 @@ async function removeRouteFromVehicle(routeId: string, projectVehicleId: string)
   return res.json();
 }
 
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth() + 1;
+
+async function getOrCreateTimesheet(projectId: string, vehicleId: string) {
+  const res = await fetch("/api/timesheets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectId,
+      vehicleId,
+      yil: currentYear,
+      ay: currentMonth,
+    }),
+  });
+  if (!res.ok) throw new Error("Puantaj açılamadı");
+  return res.json();
+}
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -154,6 +172,7 @@ export default function ProjectDetailPage() {
     plaka: string;
     assignedRouteIds: string[];
   } | null>(null);
+  const [puantajLoadingVehicleId, setPuantajLoadingVehicleId] = useState<string | null>(null);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
@@ -229,6 +248,21 @@ export default function ProjectDetailPage() {
       toast({ title: "Hata", description: "Güzergah kaldırılamadı", variant: "destructive" });
     },
   });
+
+  const handlePuantajGir = async (vehicleId: string) => {
+    setPuantajLoadingVehicleId(vehicleId);
+    try {
+      const timesheet = await getOrCreateTimesheet(id, vehicleId);
+      window.location.href = `/puantaj/${timesheet.id}`;
+    } catch (err) {
+      toast({
+        title: "Hata",
+        description: err instanceof Error ? err.message : "Puantaj açılamadı",
+        variant: "destructive",
+      });
+      setPuantajLoadingVehicleId(null);
+    }
+  };
 
   const handleRouteToggle = (routeId: string, isAssigned: boolean) => {
     if (!routeAssignVehicle) return;
@@ -399,6 +433,7 @@ export default function ProjectDetailPage() {
                       <TableHead>Tedarikçi</TableHead>
                       <TableHead>Şoför</TableHead>
                       <TableHead>Güzergahlar</TableHead>
+                      <TableHead className="w-[140px]">Puantaj</TableHead>
                       <TableHead className="w-[80px]">İşlem</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -440,6 +475,17 @@ export default function ProjectDetailPage() {
                               Güzergah Ata
                             </Button>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handlePuantajGir(pv.vehicle.id)}
+                            disabled={puantajLoadingVehicleId === pv.vehicle.id}
+                          >
+                            <ClipboardList className="w-3 h-3 mr-1" />
+                            {puantajLoadingVehicleId === pv.vehicle.id ? "Açılıyor..." : "Puantaj gir"}
+                          </Button>
                         </TableCell>
                         <TableCell>
                           <Button
