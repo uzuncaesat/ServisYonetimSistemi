@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     const endDate = new Date(parseInt(yil!), parseInt(ay!), 1);
 
     if (isFactoryReport && projectId) {
-      // Fabrika raporu: projeye göre
+      // Fabrika raporu: projeye göre – tedarikçi ayırt etmeden projedeki TÜM araçlar (tüm tedarikçiler dahil)
       const project = await prisma.project.findUnique({
         where: { id: projectId },
       });
@@ -225,6 +225,29 @@ export async function GET(req: NextRequest) {
       });
     });
 
+    // Fabrika raporu: puantajı açılmamış araçları da listele (projede atanmış tüm araçlar)
+    if (isFactoryReport && projectId) {
+      const projectVehicles = await prisma.projectVehicle.findMany({
+        where: { projectId },
+        include: { vehicle: true },
+      });
+      const vehicleIdsWithTimesheet = new Set(timesheets.map((ts) => ts.vehicleId));
+      for (const pv of projectVehicles) {
+        if (!vehicleIdsWithTimesheet.has(pv.vehicleId)) {
+          summaryRows.push([
+            pv.vehicle.plaka,
+            reportEntity.ad,
+            "Puantaj girilmemiş",
+            "-",
+            "0",
+            formatCurrency(0),
+            formatCurrency(0),
+            formatCurrency(0),
+          ]);
+        }
+      }
+    }
+
     // Calculate extra work totals (no KDV for extra work by default)
     let extraWorkTotal = 0;
     const extraWorkRows: TableCell[][] = extraWorks.map((ew) => {
@@ -346,13 +369,15 @@ export async function GET(req: NextRequest) {
             width: "*",
             stack: [
               { text: isFactoryReport ? "PROJE BİLGİLERİ" : "TEDARİKÇİ BİLGİLERİ", style: "sectionHeader" },
-              { text: `${isFactoryReport ? "Proje" : "Firma"}: ${reportEntity.ad}`, margin: [0, 5, 0, isFactoryReport ? 10 : 2] as [number, number, number, number] },
-              ...(reportEntity.vergiNo != null || reportEntity.vergiDairesi != null
-                ? [
-                    { text: `Vergi No: ${reportEntity.vergiNo || "-"}`, margin: [0, 2, 0, 2] as [number, number, number, number] },
-                    { text: `Vergi Dairesi: ${reportEntity.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] as [number, number, number, number] },
-                  ]
-                : []),
+              { text: `${isFactoryReport ? "Proje" : "Firma"}: ${reportEntity.ad}`, margin: [0, 5, 0, 2] as [number, number, number, number] },
+              ...(isFactoryReport
+                ? [{ text: "Projedeki tüm araçlar (tüm tedarikçiler dahil)", margin: [0, 0, 0, 10] as [number, number, number, number], fontSize: 9, color: "#64748b" }]
+                : (reportEntity.vergiNo != null || reportEntity.vergiDairesi != null
+                  ? [
+                      { text: `Vergi No: ${reportEntity.vergiNo || "-"}`, margin: [0, 2, 0, 2] as [number, number, number, number] },
+                      { text: `Vergi Dairesi: ${reportEntity.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] as [number, number, number, number] },
+                    ]
+                  : [])),
             ],
           },
         ],
