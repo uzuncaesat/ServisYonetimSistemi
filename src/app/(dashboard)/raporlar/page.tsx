@@ -38,9 +38,20 @@ interface Supplier {
   firmaAdi: string;
 }
 
+interface Project {
+  id: string;
+  ad: string;
+}
+
 async function fetchSuppliers(): Promise<Supplier[]> {
   const res = await fetch("/api/suppliers");
   if (!res.ok) throw new Error("Tedarikçiler yüklenemedi");
+  return res.json();
+}
+
+async function fetchProjects(): Promise<Project[]> {
+  const res = await fetch("/api/projects");
+  if (!res.ok) throw new Error("Projeler yüklenemedi");
   return res.json();
 }
 
@@ -59,6 +70,7 @@ export default function ReportsPage() {
   const { data: session } = useSession();
   const canGenerateFactory = canGenerateFactoryReport(session?.user?.role);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [reportType, setReportType] = useState<ReportType>("supplier");
@@ -69,6 +81,7 @@ export default function ReportsPage() {
     reportTitle: string;
     period: string;
     supplier: { firmaAdi: string; vergiNo: string | null; vergiDairesi: string | null };
+    isProjectReport?: boolean;
     summaryRows: Array<{ plaka: string; proje: string; guzergah: string; km: string; sefer: string; birimFiyat: string; toplam: string; kdv: string }>;
     extraWorkRows: Array<{ tarih: string; proje: string; plaka: string; aciklama: string; tutar: string }>;
     puantajTotal: number;
@@ -86,21 +99,38 @@ export default function ReportsPage() {
     queryFn: fetchSuppliers,
   });
 
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
   const handlePreview = async () => {
-    if (!selectedSupplierId) {
+    if (reportType === "supplier" && !selectedSupplierId) {
       toast({ title: "Hata", description: "Lütfen bir tedarikçi seçin", variant: "destructive" });
       return;
     }
-    if (reportType === "factory" && !canGenerateFactory) {
-      toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
-      return;
+    if (reportType === "factory") {
+      if (!canGenerateFactory) {
+        toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
+        return;
+      }
+      if (!selectedProjectId) {
+        toast({ title: "Hata", description: "Lütfen bir proje seçin", variant: "destructive" });
+        return;
+      }
     }
     setPreviewLoading(true);
     setPreviewOpen(true);
     try {
-      const res = await fetch(
-        `/api/reports/supplier?supplierId=${selectedSupplierId}&yil=${selectedYear}&ay=${selectedMonth}&reportType=${reportType}&preview=1`
-      );
+      const params = new URLSearchParams({
+        yil: selectedYear.toString(),
+        ay: selectedMonth.toString(),
+        reportType,
+        preview: "1",
+      });
+      if (reportType === "factory") params.set("projectId", selectedProjectId);
+      else params.set("supplierId", selectedSupplierId);
+      const res = await fetch(`/api/reports/supplier?${params}`);
       if (!res.ok) throw new Error("Önizleme alınamadı");
       const data = await res.json();
       setPreviewData(data);
@@ -113,34 +143,43 @@ export default function ReportsPage() {
   };
 
   const handleGenerateReport = async () => {
-    if (!selectedSupplierId) {
+    if (reportType === "supplier" && !selectedSupplierId) {
       toast({ title: "Hata", description: "Lütfen bir tedarikçi seçin", variant: "destructive" });
       return;
     }
-
-    // Check if user has permission for factory report
-    if (reportType === "factory" && !canGenerateFactory) {
-      toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
-      return;
+    if (reportType === "factory") {
+      if (!canGenerateFactory) {
+        toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
+        return;
+      }
+      if (!selectedProjectId) {
+        toast({ title: "Hata", description: "Lütfen bir proje seçin", variant: "destructive" });
+        return;
+      }
     }
 
     setIsGenerating(true);
     try {
-      const response = await fetch(
-        `/api/reports/supplier?supplierId=${selectedSupplierId}&yil=${selectedYear}&ay=${selectedMonth}&reportType=${reportType}`
-      );
+      const params = new URLSearchParams({
+        yil: selectedYear.toString(),
+        ay: selectedMonth.toString(),
+        reportType,
+      });
+      if (reportType === "factory") params.set("projectId", selectedProjectId);
+      else params.set("supplierId", selectedSupplierId);
+      const response = await fetch(`/api/reports/supplier?${params}`);
 
       if (!response.ok) {
         throw new Error("Rapor oluşturulamadı");
       }
 
-      // Download the PDF
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       const prefix = reportType === "factory" ? "fabrika-raporu" : "tedarikci-raporu";
-      a.download = `${prefix}-${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`;
+      const suffix = reportType === "factory" ? (projects?.find((p) => p.id === selectedProjectId)?.ad ?? selectedProjectId) : (suppliers?.find((s) => s.id === selectedSupplierId)?.firmaAdi ?? "");
+      a.download = `${prefix}-${suffix}-${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`.replace(/[^a-zA-Z0-9.-]/g, "_");
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -148,23 +187,22 @@ export default function ReportsPage() {
 
       toast({ title: "Rapor oluşturuldu ve indirildi" });
 
-      // Tedarikçiye bildirim gönder
-      const selectedSupplier = suppliers?.find((s) => s.id === selectedSupplierId);
-      try {
-        await fetch("/api/notifications/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "REPORT_READY",
-            title: "Rapor Hazır",
-            message: `${monthNames[selectedMonth - 1]} ${selectedYear} dönemi ${
-              reportType === "factory" ? "fabrika" : "tedarikçi"
-            } raporunuz hazırlandı.`,
-            targetSupplierId: selectedSupplierId,
-          }),
-        });
-      } catch {
-        // Bildirim gönderilmese bile rapor başarılı
+      // Tedarikçi raporunda tedarikçiye bildirim (fabrika/proje raporunda bildirim yok)
+      if (reportType === "supplier" && selectedSupplierId) {
+        try {
+          await fetch("/api/notifications/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "REPORT_READY",
+              title: "Rapor Hazır",
+              message: `${monthNames[selectedMonth - 1]} ${selectedYear} dönemi tedarikçi raporunuz hazırlandı.`,
+              targetSupplierId: selectedSupplierId,
+            }),
+          });
+        } catch {
+          // Bildirim gönderilmese bile rapor başarılı
+        }
       }
     } catch (error) {
       toast({ title: "Hata", description: "Rapor oluşturulamadı", variant: "destructive" });
@@ -201,7 +239,10 @@ export default function ReportsPage() {
                   <Button
                     type="button"
                     variant={reportType === "supplier" ? "default" : "outline"}
-                    onClick={() => setReportType("supplier")}
+                    onClick={() => {
+                      setReportType("supplier");
+                      setSelectedProjectId("");
+                    }}
                     className="justify-start"
                   >
                     <Building2 className="w-4 h-4 mr-2" />
@@ -211,7 +252,10 @@ export default function ReportsPage() {
                     <Button
                       type="button"
                       variant={reportType === "factory" ? "default" : "outline"}
-                      onClick={() => setReportType("factory")}
+                      onClick={() => {
+                        setReportType("factory");
+                        setSelectedSupplierId("");
+                      }}
                       className="justify-start bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
                     >
                       <Factory className="w-4 h-4 mr-2" />
@@ -221,28 +265,46 @@ export default function ReportsPage() {
                 </div>
                 {reportType === "factory" && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Fabrika raporu, fabrika fiyatları üzerinden hesaplanır.
+                    Fabrika raporu projeye göre oluşturulur, fabrika fiyatları üzerinden hesaplanır.
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label>Tedarikçi</Label>
-                <Select
-                  value={selectedSupplierId}
-                  onValueChange={setSelectedSupplierId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tedarikçi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers?.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.firmaAdi}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>{reportType === "factory" ? "Proje" : "Tedarikçi"}</Label>
+                {reportType === "factory" ? (
+                  <Select
+                    value={selectedProjectId}
+                    onValueChange={setSelectedProjectId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Proje seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects?.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.ad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select
+                    value={selectedSupplierId}
+                    onValueChange={setSelectedSupplierId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tedarikçi seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers?.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.firmaAdi}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -289,7 +351,7 @@ export default function ReportsPage() {
                 <Button
                   variant="outline"
                   onClick={handlePreview}
-                  disabled={!selectedSupplierId || previewLoading}
+                  disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || previewLoading}
                   className="flex-1"
                 >
                   <Eye className="w-4 h-4 mr-2" />
@@ -297,7 +359,7 @@ export default function ReportsPage() {
                 </Button>
                 <Button
                   onClick={handleGenerateReport}
-                  disabled={!selectedSupplierId || isGenerating}
+                  disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || isGenerating}
                   className={`flex-1 ${reportType === "factory" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -364,11 +426,13 @@ export default function ReportsPage() {
                   <p className="font-semibold">{previewData.reportNo} · {previewData.period}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-muted-foreground">Tedarikçi</p>
+                  <p className="font-medium text-muted-foreground">{previewData.isProjectReport ? "Proje" : "Tedarikçi"}</p>
                   <p className="font-semibold">{previewData.supplier.firmaAdi}</p>
-                  <p className="text-muted-foreground">
-                    V.No: {previewData.supplier.vergiNo || "-"} · {previewData.supplier.vergiDairesi || "-"}
-                  </p>
+                  {!previewData.isProjectReport && (previewData.supplier.vergiNo || previewData.supplier.vergiDairesi) && (
+                    <p className="text-muted-foreground">
+                      V.No: {previewData.supplier.vergiNo || "-"} · {previewData.supplier.vergiDairesi || "-"}
+                    </p>
+                  )}
                 </div>
               </div>
 
