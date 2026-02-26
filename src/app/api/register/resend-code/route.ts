@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       data: { verificationCode, verificationExpires },
     });
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: email,
       subject: "[UZHAN ERP] Yeni Doğrulama Kodu",
       html: `
@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     });
+
+    if (!emailResult.success) {
+      console.error("[ResendCode] E-posta gönderilemedi:", emailResult.error);
+      return NextResponse.json(
+        { error: "E-posta gönderilemedi. Lütfen RESEND_API_KEY ve domain ayarlarını kontrol edin." },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
