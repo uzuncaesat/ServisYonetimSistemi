@@ -36,71 +36,129 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const supplierId = searchParams.get("supplierId");
+    const projectId = searchParams.get("projectId");
     const yil = searchParams.get("yil");
     const ay = searchParams.get("ay");
     const reportType = searchParams.get("reportType") || "supplier"; // "supplier" or "factory"
     const isFactoryReport = reportType === "factory";
 
-    // Fabrika raporu için ADMIN/MANAGER yetkisi gerekli
+    // Fabrika raporu: proje seçilir, ADMIN/MANAGER yetkisi gerekli
     if (isFactoryReport) {
       const auth = await requireFactoryReportAuth();
       if (auth.error) return auth.error;
+      if (!projectId || !yil || !ay) {
+        return NextResponse.json(
+          { error: "Fabrika raporu için proje, yıl ve ay parametreleri zorunludur" },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!supplierId || !yil || !ay) {
+        return NextResponse.json(
+          { error: "Tedarikçi, yıl ve ay parametreleri zorunludur" },
+          { status: 400 }
+        );
+      }
     }
 
-    if (!supplierId || !yil || !ay) {
-      return NextResponse.json(
-        { error: "Tedarikçi, yıl ve ay parametreleri zorunludur" },
-        { status: 400 }
-      );
-    }
+    let timesheets: Awaited<ReturnType<typeof prisma.timesheet.findMany>>;
+    let extraWorks: Awaited<ReturnType<typeof prisma.extraWork.findMany>>;
+    let reportEntity: { ad: string; vergiNo?: string | null; vergiDairesi?: string | null };
 
-    // Get supplier info
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
-    });
+    const startDate = new Date(parseInt(yil!), parseInt(ay!) - 1, 1);
+    const endDate = new Date(parseInt(yil!), parseInt(ay!), 1);
 
-    if (!supplier) {
-      return NextResponse.json(
-        { error: "Tedarikçi bulunamadı" },
-        { status: 404 }
-      );
-    }
+    if (isFactoryReport && projectId) {
+      // Fabrika raporu: projeye göre
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      });
+      if (!project) {
+        return NextResponse.json(
+          { error: "Proje bulunamadı" },
+          { status: 404 }
+        );
+      }
+      reportEntity = { ad: project.ad };
 
-    // Get all timesheets for this supplier in the given period
-    const timesheets = await prisma.timesheet.findMany({
-      where: {
-        vehicle: { supplierId },
-        yil: parseInt(yil),
-        ay: parseInt(ay),
-      },
-      include: {
-        project: true,
-        vehicle: true,
-        entries: {
-          include: { route: true },
-          orderBy: { tarih: "asc" },
+      timesheets = await prisma.timesheet.findMany({
+        where: {
+          projectId,
+          yil: parseInt(yil!),
+          ay: parseInt(ay!),
         },
-      },
-    });
-
-    // Get extra work entries for this supplier in the given period
-    const startDate = new Date(parseInt(yil), parseInt(ay) - 1, 1);
-    const endDate = new Date(parseInt(yil), parseInt(ay), 1);
-    
-    const extraWorks = await prisma.extraWork.findMany({
-      where: {
-        supplierId,
-        tarih: {
-          gte: startDate,
-          lt: endDate,
+        include: {
+          project: true,
+          vehicle: true,
+          entries: {
+            include: { route: true },
+            orderBy: { tarih: "asc" },
+          },
         },
-      },
-      include: {
-        project: true,
-        vehicle: true,
-      },
-      orderBy: { tarih: "asc" },
-    });
+      });
+
+      extraWorks = await prisma.extraWork.findMany({
+        where: {
+          projectId,
+          tarih: {
+            gte: startDate,
+            lt: endDate,
+          },
+        },
+        include: {
+          project: true,
+          vehicle: true,
+        },
+        orderBy: { tarih: "asc" },
+      });
+    } else {
+      // Tedarikçi raporu
+      const supplier = await prisma.supplier.findUnique({
+        where: { id: supplierId! },
+      });
+      if (!supplier) {
+        return NextResponse.json(
+          { error: "Tedarikçi bulunamadı" },
+          { status: 404 }
+        );
+      }
+      reportEntity = {
+        ad: supplier.firmaAdi,
+        vergiNo: supplier.vergiNo,
+        vergiDairesi: supplier.vergiDairesi,
+      };
+
+      timesheets = await prisma.timesheet.findMany({
+        where: {
+          vehicle: { supplierId: supplierId! },
+          yil: parseInt(yil!),
+          ay: parseInt(ay!),
+        },
+        include: {
+          project: true,
+          vehicle: true,
+          entries: {
+            include: { route: true },
+            orderBy: { tarih: "asc" },
+          },
+        },
+      });
+
+      extraWorks = await prisma.extraWork.findMany({
+        where: {
+          supplierId: supplierId!,
+          tarih: {
+            gte: startDate,
+            lt: endDate,
+          },
+        },
+        include: {
+          project: true,
+          vehicle: true,
+        },
+        orderBy: { tarih: "asc" },
+      });
+    }
 
     // Calculate puantaj totals
     let puantajTotal = 0;
@@ -181,14 +239,21 @@ export async function GET(req: NextRequest) {
     const grandFatura = grandAraToplam - grandTevkifat;
 
     // Generate report number
-    const reportCount = await prisma.timesheet.count({
-      where: {
-        vehicle: { supplierId },
-        yil: parseInt(yil),
-      },
-    });
-    const reportPrefix = isFactoryReport ? "FAB" : "TED";
-    const reportNo = `${reportPrefix}-${yil}-${String(reportCount + 1).padStart(3, "0")}`;
+    let reportNo: string;
+    if (isFactoryReport && projectId) {
+      const reportCount = await prisma.timesheet.count({
+        where: { projectId, yil: parseInt(yil!) },
+      });
+      reportNo = `FAB-${yil}-${String(parseInt(ay!)).padStart(2, "0")}-${String(reportCount + 1).padStart(3, "0")}`;
+    } else {
+      const reportCount = await prisma.timesheet.count({
+        where: {
+          vehicle: { supplierId: supplierId! },
+          yil: parseInt(yil!),
+        },
+      });
+      reportNo = `TED-${yil}-${String(reportCount + 1).padStart(3, "0")}`;
+    }
 
     const monthNames = [
       "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -201,12 +266,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         reportNo,
         reportTitle: isFactoryReport ? "FABRİKA RAPORU" : "TEDARİKÇİ RAPORU",
-        period: `${monthNames[parseInt(ay) - 1]} ${yil}`,
+        period: `${monthNames[parseInt(ay!) - 1]} ${yil}`,
         supplier: {
-          firmaAdi: supplier.firmaAdi,
-          vergiNo: supplier.vergiNo,
-          vergiDairesi: supplier.vergiDairesi,
+          firmaAdi: reportEntity.ad,
+          vergiNo: reportEntity.vergiNo ?? null,
+          vergiDairesi: reportEntity.vergiDairesi ?? null,
         },
+        isProjectReport: isFactoryReport,
         summaryRows: summaryRows.map((row) => ({
           plaka: row[0],
           proje: row[1],
@@ -267,10 +333,14 @@ export async function GET(req: NextRequest) {
           {
             width: "*",
             stack: [
-              { text: "TEDARİKÇİ BİLGİLERİ", style: "sectionHeader" },
-              { text: `Firma: ${supplier.firmaAdi}`, margin: [0, 5, 0, 2] },
-              { text: `Vergi No: ${supplier.vergiNo || "-"}`, margin: [0, 2, 0, 2] },
-              { text: `Vergi Dairesi: ${supplier.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] },
+              { text: isFactoryReport ? "PROJE BİLGİLERİ" : "TEDARİKÇİ BİLGİLERİ", style: "sectionHeader" },
+              { text: `${isFactoryReport ? "Proje" : "Firma"}: ${reportEntity.ad}`, margin: [0, 5, 0, isFactoryReport ? 10 : 2] },
+              ...(reportEntity.vergiNo != null || reportEntity.vergiDairesi != null
+                ? [
+                    { text: `Vergi No: ${reportEntity.vergiNo || "-"}`, margin: [0, 2, 0, 2] },
+                    { text: `Vergi Dairesi: ${reportEntity.vergiDairesi || "-"}`, margin: [0, 2, 0, 10] },
+                  ]
+                : []),
             ],
           },
         ],
