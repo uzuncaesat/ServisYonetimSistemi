@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import PdfPrinter from "pdfmake";
-import { requireFactoryReportAuth } from "@/lib/api-auth";
+import { requireAuth, requireFactoryReportAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 import { TDocumentDefinitions, Content, TableCell } from "pdfmake/interfaces";
@@ -46,8 +46,11 @@ function formatDate(date: Date): string {
 
 export async function GET(req: NextRequest) {
   try {
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { searchParams } = new URL(req.url);
-    const supplierId = searchParams.get("supplierId");
+    let supplierId = searchParams.get("supplierId");
     const projectId = searchParams.get("projectId");
     const yil = searchParams.get("yil");
     const ay = searchParams.get("ay");
@@ -65,10 +68,27 @@ export async function GET(req: NextRequest) {
         );
       }
     } else {
+      // Tedarikçi raporu: tedarikçi portalından gelen istekte session'daki supplierId kullanılır
+      if (session!.user.role === "SUPPLIER") {
+        if (!session!.user.supplierId) {
+          return NextResponse.json(
+            { error: "Tedarikçi hesabına bağlı firma bulunamadı" },
+            { status: 403 }
+          );
+        }
+        supplierId = session!.user.supplierId;
+      }
       if (!supplierId || !yil || !ay) {
         return NextResponse.json(
           { error: "Tedarikçi, yıl ve ay parametreleri zorunludur" },
           { status: 400 }
+        );
+      }
+      // Tedarikçi sadece kendi raporunu görebilir
+      if (session!.user.role === "SUPPLIER" && supplierId !== session!.user.supplierId) {
+        return NextResponse.json(
+          { error: "Bu raporu görüntüleme yetkiniz yok" },
+          { status: 403 }
         );
       }
     }
@@ -112,6 +132,7 @@ export async function GET(req: NextRequest) {
       extraWorks = await prisma.extraWork.findMany({
         where: {
           projectId,
+          status: "APPROVED",
           tarih: {
             gte: startDate,
             lt: endDate,
@@ -159,6 +180,7 @@ export async function GET(req: NextRequest) {
       extraWorks = await prisma.extraWork.findMany({
         where: {
           supplierId: supplierId!,
+          status: "APPROVED",
           tarih: {
             gte: startDate,
             lt: endDate,

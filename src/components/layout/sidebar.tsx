@@ -135,7 +135,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                     ? "bg-green-500/20 text-green-300"
                     : "bg-blue-500/20 text-blue-300"
                 }`}>
-                  {session.user.role === "ADMIN" ? "Admin" : session.user.role === "MANAGER" ? "Yönetici" : session.user.role === "SUPPLIER" ? "Tedarikçi" : "Kullanıcı"}
+                  {session.user.role === "ADMIN" ? "Admin" : session.user.role === "MANAGER" ? "Projeci" : session.user.role === "SUPPLIER" ? "Tedarikçi" : "Kullanıcı"}
                 </span>
               )}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,13 @@ export default function ReportsPage() {
     grandFatura: number;
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canGenerateFactory && reportType === "factory") {
+      setReportType("supplier");
+      setSelectedProjectId("");
+    }
+  }, [canGenerateFactory, reportType]);
 
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers"],
