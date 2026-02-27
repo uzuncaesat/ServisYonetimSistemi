@@ -184,7 +184,7 @@ export default function UsersPage() {
       case "ADMIN":
         return "Admin";
       case "MANAGER":
-        return "Yönetici";
+        return "Projeci";
       case "SUPPLIER":
         return "Tedarikçi";
       default:
@@ -264,7 +264,7 @@ export default function UsersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="USER">Kullanıcı</SelectItem>
-                          <SelectItem value="MANAGER">Yönetici</SelectItem>
+                          <SelectItem value="MANAGER">Projeci</SelectItem>
                           <SelectItem value="ADMIN">Admin</SelectItem>
                           <SelectItem value="SUPPLIER">Tedarikçi</SelectItem>
                         </SelectContent>

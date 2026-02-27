@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Factory } from "lucide-react";
+import { Plus, Pencil, Trash2, Factory, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { canEditFactoryPrice, canViewFactoryPrice } from "@/lib/auth";
@@ -55,6 +55,9 @@ interface ExtraWork {
   aciklama: string;
   fiyat: number;
   fabrikaFiyati: number | null;
+  status: string;
+  approvedAt: string | null;
+  approvedBy: { id: string; name: string | null } | null;
   supplier: { id: string; firmaAdi: string };
   vehicle: { id: string; plaka: string };
   project: { id: string; ad: string };
@@ -216,6 +219,27 @@ export default function ExtraWorkPage() {
       toast({ title: "Hata", description: "Ek iş silinemedi", variant: "destructive" });
     },
   });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/extra-work/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED" }),
+      });
+      if (!res.ok) throw new Error("Onaylanamadı");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["extra-works"] });
+      toast({ title: "Ek iş onaylandı" });
+    },
+    onError: () => {
+      toast({ title: "Hata", description: "Ek iş onaylanamadı", variant: "destructive" });
+    },
+  });
+
+  const isAdmin = session?.user?.role === "ADMIN";
 
   const onSubmit = (data: ExtraWorkFormData) => {
     if (editingItem) {
@@ -497,7 +521,8 @@ export default function ExtraWorkPage() {
                   {showFactoryPrice && (
                     <TableHead className="text-right">Fabrika Fiyatı</TableHead>
                   )}
-                  <TableHead className="w-[100px]">İşlemler</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead className="w-[120px]">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -517,14 +542,42 @@ export default function ExtraWorkPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                      {(item.status ?? "APPROVED") === "APPROVED" ? (
+                        <span className="inline-flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          Onaylandı
+                          {item.approvedAt && (
+                            <span className="text-muted-foreground text-xs">
+                              ({formatDate(new Date(item.approvedAt))})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400 text-sm">Onay Bekliyor</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {(item.status ?? "APPROVED") === "PENDING_APPROVAL" && isAdmin && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => approveMutation.mutate(item.id)}
+                            disabled={approveMutation.isPending}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Onayla
+                          </Button>
+                        )}
+                        {(isAdmin || (item.status ?? "APPROVED") === "PENDING_APPROVAL") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(item)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

@@ -61,6 +61,8 @@ model User {
   // Tedarikçi portalı: SUPPLIER rolündeki kullanıcılar için
   supplierId String?
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  approvedExtraWorks ExtraWork[]
   
   notifications Notification[]
 }
@@ -276,6 +278,10 @@ model ExtraWork {
   aciklama      String   // Güzergah/iş açıklaması (elle girilecek)
   fiyat         Float    // Tedarikçiye ödenen fiyat
   fabrikaFiyati Float?   // Fabrikadan alınan fiyat (null ise fiyat kullanılır)
+  status        String   @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED
+  approvedById  String?
+  approvedBy    User?    @relation(fields: [approvedById], references: [id])
+  approvedAt    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   

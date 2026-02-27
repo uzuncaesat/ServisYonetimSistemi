@@ -82,7 +82,7 @@ export const authOptions: NextAuthOptions = {
 
 // Helper functions for role-based access control
 export function canViewFactoryPrice(role: UserRole | undefined): boolean {
-  return role === "ADMIN" || role === "MANAGER";
+  return role === "ADMIN";
 }
 
 export function canEditFactoryPrice(role: UserRole | undefined): boolean {
@@ -90,7 +90,7 @@ export function canEditFactoryPrice(role: UserRole | undefined): boolean {
 }
 
 export function canGenerateFactoryReport(role: UserRole | undefined): boolean {
-  return role === "ADMIN" || role === "MANAGER";
+  return role === "ADMIN";
 }
 
 export function canManageUsers(role: UserRole | undefined): boolean {

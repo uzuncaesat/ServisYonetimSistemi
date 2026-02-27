@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Check, CheckCheck, FileWarning, ClipboardCheck, FileText } from "lucide-react";
+import Link from "next/link";
+import { Bell, Check, CheckCheck, FileWarning, ClipboardCheck, FileText, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 
@@ -159,6 +160,14 @@ export default function SupplierNotificationsPage() {
                           locale: tr,
                         })}
                       </p>
+                      {notification.type === "REPORT_READY" && (
+                        <Link href="/tedarikci/raporlar">
+                          <Button variant="outline" size="sm" className="mt-2">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Raporu Görüntüle
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                     {!notification.read && (
                       <Button

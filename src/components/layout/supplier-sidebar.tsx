@@ -11,6 +11,7 @@ import {
   Truck,
   ChevronRight,
   Bell,
+  FileText,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const menuItems = [
   { href: "/tedarikci", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tedarikci/araclarim", label: "Araçlarım", icon: Car },
   { href: "/tedarikci/puantaj", label: "Puantaj / Hakediş", icon: ClipboardList },
+  { href: "/tedarikci/raporlar", label: "Raporlarım", icon: FileText },
   { href: "/tedarikci/bildirimler", label: "Bildirimler", icon: Bell },
 ];
 

@@ -48,6 +48,9 @@ export async function GET(req: NextRequest) {
         project: {
           select: { id: true, ad: true },
         },
+        approvedBy: {
+          select: { id: true, name: true },
+        },
       },
       orderBy: { tarih: "desc" },
     });
@@ -76,6 +79,7 @@ export async function POST(req: NextRequest) {
       if (auth.error) return auth.error;
     }
 
+    const isAdmin = session!.user.role === "ADMIN";
     const extraWork = await prisma.extraWork.create({
       data: {
         tarih: new Date(validated.tarih),
@@ -85,6 +89,9 @@ export async function POST(req: NextRequest) {
         supplierId: validated.supplierId,
         vehicleId: validated.vehicleId,
         projectId: validated.projectId,
+        status: isAdmin ? "APPROVED" : "PENDING_APPROVAL",
+        approvedById: isAdmin ? session!.user.id : null,
+        approvedAt: isAdmin ? new Date() : null,
       },
       include: {
         supplier: {
@@ -95,6 +102,9 @@ export async function POST(req: NextRequest) {
         },
         project: {
           select: { id: true, ad: true },
+        },
+        approvedBy: {
+          select: { id: true, name: true },
         },
       },
     });
