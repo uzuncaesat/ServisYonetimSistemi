@@ -103,7 +103,7 @@ export default function EditRoutePage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Güzergah Düzenle</h1>
-          <p className="text-slate-500">{route?.ad}</p>
+          <p className="text-muted-foreground">{route?.ad}</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function EditRoutePage() {
               <Label htmlFor="ad">Güzergah Adı *</Label>
               <Input id="ad" {...register("ad")} />
               {errors.ad && (
-                <p className="text-sm text-red-500">{errors.ad.message}</p>
+                <p className="text-xs text-destructive">{errors.ad.message}</p>
               )}
             </div>
 
@@ -152,7 +152,7 @@ export default function EditRoutePage() {
                   {...register("birimFiyat")}
                 />
                 {errors.birimFiyat && (
-                  <p className="text-sm text-red-500">{errors.birimFiyat.message}</p>
+                  <p className="text-xs text-destructive">{errors.birimFiyat.message}</p>
                 )}
               </div>
               <div className="space-y-2">

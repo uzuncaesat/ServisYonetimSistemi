@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -19,7 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ClipboardList, Banknote, TrendingUp } from "lucide-react";
+import { ClipboardList, Banknote, TrendingUp, type LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface TimesheetSummary {
   id: string;
@@ -57,6 +66,37 @@ const aylar = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ];
 
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  loading?: boolean;
+}
+
+function StatCard({ label, value, icon: Icon, loading }: StatCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-muted/40 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="mt-4 space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+          {loading ? (
+            <Skeleton className="h-8 w-20" />
+          ) : (
+            <p className="text-2xl font-semibold tracking-tight tabular-nums">
+              {value}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SupplierTimesheetsPage() {
   const now = new Date();
   const [yil, setYil] = useState(now.getFullYear());
@@ -70,95 +110,80 @@ export default function SupplierTimesheetsPage() {
   const totalRevenue = timesheets?.reduce((sum, ts) => sum + ts.toplamTutar, 0) || 0;
   const totalTrips = timesheets?.reduce((sum, ts) => sum + ts.toplamSefer, 0) || 0;
 
-  // Yıl seçenekleri (son 3 yıl)
   const years = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Puantaj / Hakediş</h1>
-        <p className="text-muted-foreground mt-1">
-          Aylık sefer sayıları ve hakediş tutarlarınız
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight">Puantaj / Hakediş</h1>
+          <p className="text-sm text-muted-foreground">
+            Aylık sefer sayıları ve hakediş tutarlarınız.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Select value={String(yil)} onValueChange={(v) => setYil(Number(v))}>
+            <SelectTrigger className="w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(ay)} onValueChange={(v) => setAy(Number(v))}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {aylar.map((a, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <Select value={String(yil)} onValueChange={(v) => setYil(Number(v))}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={String(ay)} onValueChange={(v) => setAy(Number(v))}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {aylar.map((a, i) => (
-              <SelectItem key={i + 1} value={String(i + 1)}>{a}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard
+          label="Puantaj Sayısı"
+          value={timesheets?.length ?? 0}
+          icon={ClipboardList}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Toplam Sefer"
+          value={totalTrips}
+          icon={TrendingUp}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Toplam Hakediş"
+          value={formatCurrency(totalRevenue)}
+          icon={Banknote}
+          loading={isLoading}
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30">
-              <ClipboardList className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Puantaj Sayısı</p>
-              <p className="text-2xl font-bold">{timesheets?.length || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/30">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Toplam Sefer</p>
-              <p className="text-2xl font-bold">{totalTrips}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30">
-              <Banknote className="w-6 h-6 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Toplam Hakediş</p>
-              <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Timesheets Table */}
-      <Card className="border-0 shadow-md">
+      <Card>
         <CardHeader>
           <CardTitle>
             {aylar[ay - 1]} {yil} Puantajları
           </CardTitle>
+          <CardDescription>
+            Seçilen döneme ait araç bazlı sefer ve hakediş özetiniz.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-            </div>
-          ) : !timesheets || timesheets.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Bu döneme ait puantaj bulunmuyor.
-            </p>
+        <CardContent className="p-0">
+          {!isLoading && (!timesheets || timesheets.length === 0) ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="Kayıt yok"
+              description="Bu döneme ait puantaj bulunmuyor."
+              className="m-5"
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -171,35 +196,44 @@ export default function SupplierTimesheetsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {timesheets.map((ts) => (
-                    <TableRow key={ts.id}>
-                      <TableCell>
-                        <Badge variant="secondary">{ts.project.ad}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {ts.vehicle.plaka}
-                        {ts.vehicle.marka && (
-                          <span className="text-muted-foreground text-sm ml-2">
-                            ({ts.vehicle.marka})
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {ts.toplamSefer}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-green-600">
-                        {formatCurrency(ts.toplamTutar)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {/* Toplam satırı */}
-                  <TableRow className="bg-muted/50 font-bold">
-                    <TableCell colSpan={2}>TOPLAM</TableCell>
-                    <TableCell className="text-right">{totalTrips}</TableCell>
-                    <TableCell className="text-right text-green-600">
-                      {formatCurrency(totalRevenue)}
-                    </TableCell>
-                  </TableRow>
+                  {isLoading ? (
+                    <TableSkeleton columns={4} />
+                  ) : (
+                    <>
+                      {timesheets?.map((ts) => (
+                        <TableRow key={ts.id}>
+                          <TableCell>
+                            <Badge variant="secondary">{ts.project.ad}</Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {ts.vehicle.plaka}
+                            {ts.vehicle.marka && (
+                              <span className="ml-2 text-sm text-muted-foreground">
+                                ({ts.vehicle.marka})
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {ts.toplamSefer}
+                          </TableCell>
+                          <TableCell className="text-right font-medium tabular-nums">
+                            {formatCurrency(ts.toplamTutar)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {timesheets && timesheets.length > 0 ? (
+                        <TableRow className="bg-muted/30 font-medium">
+                          <TableCell colSpan={2}>TOPLAM</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {totalTrips}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-primary">
+                            {formatCurrency(totalRevenue)}
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </>
+                  )}
                 </TableBody>
               </Table>
             </div>

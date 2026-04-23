@@ -22,11 +22,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Car, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Vehicle {
   id: string;
@@ -80,109 +89,132 @@ export default function VehiclesPage() {
       setDeleteId(null);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Araç silinemedi", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Araç silinemedi",
+        variant: "destructive",
+      });
     },
   });
+
+  const hasItems = (vehicles?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Araçlar"
-        description="Araç envanterini yönetin"
-        actionLabel="Yeni Araç"
+        description="Araç envanterini yönetin."
+        actionLabel="Yeni araç"
         actionHref="/araclar/yeni"
       />
 
-      <div className="overflow-x-auto min-w-0">
-        <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Plaka</TableHead>
-              <TableHead>Marka / Model</TableHead>
-              <TableHead>Kişi Sayısı</TableHead>
-              <TableHead>Tedarikçi</TableHead>
-              <TableHead>Şoför</TableHead>
-              <TableHead>Proje</TableHead>
-              <TableHead className="w-[120px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      {!isLoading && !hasItems ? (
+        <EmptyState
+          icon={Car}
+          title="Henüz araç yok"
+          description="İlk aracınızı ekleyerek envanter oluşturmaya başlayın."
+          action={
+            <Button asChild>
+              <Link href="/araclar/yeni">Yeni araç</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  Yükleniyor...
-                </TableCell>
+                <TableHead>Plaka</TableHead>
+                <TableHead>Marka / Model</TableHead>
+                <TableHead>Kapasite</TableHead>
+                <TableHead>Tedarikçi</TableHead>
+                <TableHead>Şoför</TableHead>
+                <TableHead>Proje</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ) : vehicles?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Henüz araç eklenmemiş
-                </TableCell>
-              </TableRow>
-            ) : (
-              vehicles?.map((vehicle) => (
-                <TableRow 
-                  key={vehicle.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/araclar/${vehicle.id}`)}
-                >
-                  <TableCell className="font-medium">{vehicle.plaka}</TableCell>
-                  <TableCell>
-                    {vehicle.marka || "-"} {vehicle.model || ""}
-                  </TableCell>
-                  <TableCell>{vehicle.kisiSayisi || "-"}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      href={`/tedarikciler/${vehicle.supplier.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {vehicle.supplier.firmaAdi}
-                    </Link>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    {vehicle.driver ? (
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={7} />
+              ) : (
+                vehicles?.map((vehicle) => (
+                  <TableRow
+                    key={vehicle.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/araclar/${vehicle.id}`)}
+                  >
+                    <TableCell className="font-medium">
+                      {vehicle.plaka}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {vehicle.marka || "—"} {vehicle.model || ""}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {vehicle.kisiSayisi || "—"}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Link
-                        href={`/soforler/${vehicle.driver.id}`}
-                        className="text-primary hover:underline"
+                        href={`/tedarikciler/${vehicle.supplier.id}`}
+                        className="text-foreground hover:text-primary transition-colors"
                       >
-                        {vehicle.driver.adSoyad}
+                        {vehicle.supplier.firmaAdi}
                       </Link>
-                    ) : (
-                      <span className="text-slate-400">Atanmamış</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{vehicle._count.projects}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/araclar/${vehicle.id}/duzenle`}>
-                          <Edit className="w-4 h-4" />
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {vehicle.driver ? (
+                        <Link
+                          href={`/soforler/${vehicle.driver.id}`}
+                          className="text-foreground hover:text-primary transition-colors"
+                        >
+                          {vehicle.driver.adSoyad}
                         </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(vehicle.id)}
+                      ) : (
+                        <span className="text-muted-foreground">Atanmamış</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">{vehicle._count.projects}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/araclar/${vehicle.id}/duzenle`}>
+                                <Edit /> Düzenle
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(vehicle.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="text-destructive" /> Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Aracı Sil</AlertDialogTitle>
+            <AlertDialogTitle>Aracı sil</AlertDialogTitle>
             <AlertDialogDescription>
               Bu aracı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
             </AlertDialogDescription>
@@ -191,7 +223,7 @@ export default function VehiclesPage() {
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Sil
             </AlertDialogAction>

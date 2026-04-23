@@ -22,12 +22,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Edit, FolderKanban, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Project {
   id: string;
@@ -74,115 +83,141 @@ export default function ProjectsPage() {
       setDeleteId(null);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Proje silinemedi", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Proje silinemedi",
+        variant: "destructive",
+      });
     },
   });
+
+  const hasProjects = (projects?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Projeler"
-        description="Servis projelerini yönetin"
-        actionLabel="Yeni Proje"
+        description="Servis projelerini yönetin."
+        actionLabel="Yeni proje"
         actionHref="/projeler/yeni"
       />
 
-      <div className="overflow-x-auto min-w-0">
-        <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Proje Adı</TableHead>
-              <TableHead>Başlangıç</TableHead>
-              <TableHead>Bitiş</TableHead>
-              <TableHead>Araç</TableHead>
-              <TableHead>Güzergah</TableHead>
-              <TableHead className="w-[120px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      {!isLoading && !hasProjects ? (
+        <EmptyState
+          icon={FolderKanban}
+          title="Henüz proje yok"
+          description="İlk projenizi oluşturarak başlayın. Projeler; araç, güzergah ve puantaj kayıtlarını gruplar."
+          action={
+            <Button asChild>
+              <Link href="/projeler/yeni">Yeni proje</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Yükleniyor...
-                </TableCell>
+                <TableHead>Proje adı</TableHead>
+                <TableHead>Başlangıç</TableHead>
+                <TableHead>Bitiş</TableHead>
+                <TableHead>Araç</TableHead>
+                <TableHead>Güzergah</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ) : projects?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Henüz proje eklenmemiş
-                </TableCell>
-              </TableRow>
-            ) : (
-              projects?.map((project) => (
-                <TableRow 
-                  key={project.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/projeler/${project.id}`)}
-                >
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{project.ad}</p>
-                      {project.aciklama && (
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {project.aciklama}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={6} />
+              ) : (
+                projects?.map((project) => (
+                  <TableRow
+                    key={project.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/projeler/${project.id}`)}
+                  >
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {project.ad}
                         </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {project.baslangicTarihi
-                      ? formatDate(project.baslangicTarihi)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {project.bitisTarihi
-                      ? formatDate(project.bitisTarihi)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{project._count.vehicles}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{project._count.routes}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/projeler/${project.id}/duzenle`}>
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(project.id)}
+                        {project.aciklama ? (
+                          <p className="text-xs text-muted-foreground truncate max-w-xs">
+                            {project.aciklama}
+                          </p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {project.baslangicTarihi
+                        ? formatDate(project.baslangicTarihi)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {project.bitisTarihi
+                        ? formatDate(project.bitisTarihi)
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">
+                        {project._count.vehicles}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">
+                        {project._count.routes}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/projeler/${project.id}/duzenle`}>
+                                <Edit /> Düzenle
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(project.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="text-destructive" /> Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Projeyi Sil</AlertDialogTitle>
+            <AlertDialogTitle>Projeyi sil</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu projeyi silmek istediğinizden emin misiniz? Tüm güzergahlar ve puantajlar da silinecektir.
+              Bu projeyi silmek istediğinizden emin misiniz? Tüm güzergahlar ve
+              puantajlar da silinecektir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Sil
             </AlertDialogAction>

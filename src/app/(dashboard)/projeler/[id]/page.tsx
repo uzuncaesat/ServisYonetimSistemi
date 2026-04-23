@@ -303,7 +303,7 @@ export default function ProjectDetailPage() {
               {project.ad}
             </h1>
             {project.aciklama && (
-              <p className="text-slate-500">{project.aciklama}</p>
+              <p className="text-muted-foreground">{project.aciklama}</p>
             )}
           </div>
         </div>
@@ -319,7 +319,7 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Başlangıç Tarihi</p>
+            <p className="text-sm text-muted-foreground">Başlangıç Tarihi</p>
             <p className="font-medium">
               {project.baslangicTarihi ? formatDate(project.baslangicTarihi) : "-"}
             </p>
@@ -327,7 +327,7 @@ export default function ProjectDetailPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Bitiş Tarihi</p>
+            <p className="text-sm text-muted-foreground">Bitiş Tarihi</p>
             <p className="font-medium">
               {project.bitisTarihi ? formatDate(project.bitisTarihi) : "-"}
             </p>
@@ -335,13 +335,13 @@ export default function ProjectDetailPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Araç Sayısı</p>
+            <p className="text-sm text-muted-foreground">Araç Sayısı</p>
             <p className="font-medium text-2xl">{project.vehicles.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Güzergah Sayısı</p>
+            <p className="text-sm text-muted-foreground">Güzergah Sayısı</p>
             <p className="font-medium text-2xl">{project.routes.length}</p>
           </CardContent>
         </Card>
@@ -422,7 +422,7 @@ export default function ProjectDetailPage() {
             </CardHeader>
             <CardContent>
               {project.vehicles.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   Bu projeye henüz araç atanmamış
                 </p>
               ) : (
@@ -447,14 +447,14 @@ export default function ProjectDetailPage() {
                           >
                             {pv.vehicle.plaka}
                           </Link>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-muted-foreground">
                             {pv.vehicle.marka} {pv.vehicle.model}
                           </p>
                         </TableCell>
                         <TableCell>{pv.vehicle.supplier.firmaAdi}</TableCell>
                         <TableCell>
                           {pv.vehicle.driver?.adSoyad || (
-                            <span className="text-slate-400">Atanmamış</span>
+                            <span className="text-muted-foreground">Atanmamış</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -493,7 +493,7 @@ export default function ProjectDetailPage() {
                             size="icon"
                             onClick={() => setRemoveVehicleId(pv.id)}
                           >
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -518,7 +518,7 @@ export default function ProjectDetailPage() {
             </CardHeader>
             <CardContent>
               {project.routes.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   Bu projede henüz güzergah tanımlanmamış
                 </p>
               ) : (
@@ -573,7 +573,7 @@ export default function ProjectDetailPage() {
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => removeVehicleId && removeVehicleMutation.mutate(removeVehicleId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Kaldır
             </AlertDialogAction>
@@ -591,7 +591,7 @@ export default function ProjectDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {project.routes.length === 0 ? (
-              <p className="text-slate-500 text-center py-4">
+              <p className="text-muted-foreground text-center py-4">
                 Bu projede henüz güzergah tanımlanmamış.
                 <br />
                 Önce güzergah ekleyin.
@@ -616,7 +616,7 @@ export default function ProjectDetailPage() {
                         className="flex-1 cursor-pointer"
                       >
                         <div className="font-medium">{route.ad}</div>
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-muted-foreground">
                           {route.baslangicNoktasi || "-"} → {route.bitisNoktasi || "-"}
                           {" | "}
                           {formatCurrency(route.birimFiyat)}

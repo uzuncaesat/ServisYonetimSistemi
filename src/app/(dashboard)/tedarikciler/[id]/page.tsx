@@ -122,7 +122,7 @@ export default function SupplierDetailPage() {
               <Building2 className="w-6 h-6" />
               {supplier.firmaAdi}
             </h1>
-            <p className="text-slate-500">Tedarikçi Detayı</p>
+            <p className="text-muted-foreground">Tedarikçi Detayı</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -208,23 +208,23 @@ export default function SupplierDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-slate-500">Vergi No</p>
+              <p className="text-sm text-muted-foreground">Vergi No</p>
               <p className="font-medium">{supplier.vergiNo || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Vergi Dairesi</p>
+              <p className="text-sm text-muted-foreground">Vergi Dairesi</p>
               <p className="font-medium">{supplier.vergiDairesi || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Telefon</p>
+              <p className="text-sm text-muted-foreground">Telefon</p>
               <p className="font-medium">{supplier.telefon || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Email</p>
+              <p className="text-sm text-muted-foreground">Email</p>
               <p className="font-medium">{supplier.email || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Adres</p>
+              <p className="text-sm text-muted-foreground">Adres</p>
               <p className="font-medium">{supplier.adres || "-"}</p>
             </div>
           </CardContent>
@@ -241,7 +241,7 @@ export default function SupplierDetailPage() {
           </CardHeader>
           <CardContent>
             {supplier.vehicles.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">
+              <p className="text-muted-foreground text-center py-8">
                 Bu tedarikçiye ait araç bulunmuyor
               </p>
             ) : (

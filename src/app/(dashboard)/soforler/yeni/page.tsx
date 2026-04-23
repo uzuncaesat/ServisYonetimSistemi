@@ -63,7 +63,7 @@ export default function NewDriverPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Yeni Şoför</h1>
-          <p className="text-slate-500">Yeni bir şoför kaydı oluşturun</p>
+          <p className="text-muted-foreground">Yeni bir şoför kaydı oluşturun</p>
         </div>
       </div>
 
@@ -77,7 +77,7 @@ export default function NewDriverPage() {
               <Label htmlFor="adSoyad">Ad Soyad *</Label>
               <Input id="adSoyad" {...register("adSoyad")} />
               {errors.adSoyad && (
-                <p className="text-sm text-red-500">{errors.adSoyad.message}</p>
+                <p className="text-xs text-destructive">{errors.adSoyad.message}</p>
               )}
             </div>
 
@@ -96,7 +96,7 @@ export default function NewDriverPage() {
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 

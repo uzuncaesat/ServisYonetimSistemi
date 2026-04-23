@@ -64,7 +64,7 @@ export default function NewSupplierPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Yeni Tedarikçi</h1>
-          <p className="text-slate-500">Yeni bir tedarikçi firması ekleyin</p>
+          <p className="text-muted-foreground">Yeni bir tedarikçi firması ekleyin</p>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export default function NewSupplierPage() {
               <Label htmlFor="firmaAdi">Firma Adı *</Label>
               <Input id="firmaAdi" {...register("firmaAdi")} />
               {errors.firmaAdi && (
-                <p className="text-sm text-red-500">{errors.firmaAdi.message}</p>
+                <p className="text-xs text-destructive">{errors.firmaAdi.message}</p>
               )}
             </div>
 
@@ -102,7 +102,7 @@ export default function NewSupplierPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" {...register("email")} />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-xs text-destructive">{errors.email.message}</p>
                 )}
               </div>
             </div>

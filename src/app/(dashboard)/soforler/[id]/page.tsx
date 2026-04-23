@@ -150,7 +150,7 @@ export default function DriverDetailPage() {
               <User className="w-6 h-6" />
               {driver.adSoyad}
             </h1>
-            <p className="text-slate-500">Şoför Detayı</p>
+            <p className="text-muted-foreground">Şoför Detayı</p>
           </div>
         </div>
         <Button asChild>
@@ -186,15 +186,15 @@ export default function DriverDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-slate-500">Telefon</p>
+                  <p className="text-sm text-muted-foreground">Telefon</p>
                   <p className="font-medium">{driver.telefon || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Email</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{driver.email || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Ehliyet Sınıfı</p>
+                  <p className="text-sm text-muted-foreground">Ehliyet Sınıfı</p>
                   <p className="font-medium">
                     {driver.ehliyetSinifi ? (
                       <Badge variant="secondary">{driver.ehliyetSinifi}</Badge>
@@ -235,7 +235,7 @@ export default function DriverDetailPage() {
                 {driver.vehicle ? (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-slate-500">Plaka</p>
+                      <p className="text-sm text-muted-foreground">Plaka</p>
                       <Link
                         href={`/araclar/${driver.vehicle.id}`}
                         className="font-medium text-primary hover:underline"
@@ -244,18 +244,18 @@ export default function DriverDetailPage() {
                       </Link>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Marka / Model</p>
+                      <p className="text-sm text-muted-foreground">Marka / Model</p>
                       <p className="font-medium">
                         {driver.vehicle.marka || "-"} {driver.vehicle.model || ""}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Tedarikçi</p>
+                      <p className="text-sm text-muted-foreground">Tedarikçi</p>
                       <p className="font-medium">{driver.vehicle.supplier.firmaAdi}</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-center py-4">
+                  <p className="text-muted-foreground text-center py-4">
                     Bu şoföre henüz araç atanmamış
                   </p>
                 )}
@@ -289,11 +289,11 @@ export default function DriverDetailPage() {
             {/* Remove current assignment option */}
             {driver.vehicle && (
               <div className="pb-4 border-b">
-                <p className="text-sm text-slate-500 mb-2">Mevcut Araç</p>
+                <p className="text-sm text-muted-foreground mb-2">Mevcut Araç</p>
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">{driver.vehicle.plaka}</p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                       {driver.vehicle.marka} {driver.vehicle.model}
                     </p>
                   </div>
@@ -312,7 +312,7 @@ export default function DriverDetailPage() {
 
             {/* Available vehicles list */}
             <div>
-              <p className="text-sm text-slate-500 mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 {driver.vehicle ? "Başka Araç Seç" : "Araç Seç"}
               </p>
               {availableVehicles && availableVehicles.length > 0 ? (
@@ -327,7 +327,7 @@ export default function DriverDetailPage() {
                       >
                         <div>
                           <p className="font-medium">{vehicle.plaka}</p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-muted-foreground">
                             {vehicle.marka || "-"} {vehicle.model || ""} | {vehicle.supplier.firmaAdi}
                           </p>
                         </div>
@@ -342,7 +342,7 @@ export default function DriverDetailPage() {
                     ))}
                 </div>
               ) : (
-                <p className="text-slate-500 text-center py-4">
+                <p className="text-muted-foreground text-center py-4">
                   Atanabilir araç bulunamadı
                 </p>
               )}

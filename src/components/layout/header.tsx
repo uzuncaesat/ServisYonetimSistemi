@@ -34,24 +34,25 @@ export function Header({ title }: HeaderProps) {
   const notifLink = isSupplier ? "/tedarikci/bildirimler" : "/bildirimler";
 
   return (
-    <header className="h-16 border-b bg-background flex items-center justify-between px-4 sm:px-6">
-      <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{title}</h1>
-      
-      <div className="flex items-center gap-3">
-        {/* Notification Bell */}
-        <Button variant="ghost" size="icon" className="relative" asChild>
-          <Link href={notifLink}>
-            <Bell className="w-5 h-5" />
+    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
+      <h1 className="truncate text-sm font-medium tracking-tight text-foreground">
+        {title}
+      </h1>
+
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="relative h-8 w-8" asChild>
+          <Link href={notifLink} aria-label="Bildirimler">
+            <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <User className="w-4 h-4" />
+        <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+          <User className="h-3.5 w-3.5" />
           <span>{session?.user?.name || session?.user?.email}</span>
         </div>
       </div>

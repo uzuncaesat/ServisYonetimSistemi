@@ -38,10 +38,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Download, Eye, Trash2, FileText, AlertCircle } from "lucide-react";
+import { Plus, Download, Eye, Trash2, FileText, AlertCircle, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { vehicleDocTypes, driverDocTypes } from "@/lib/validations";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Document {
   id: string;
@@ -171,11 +180,11 @@ export function DocumentList({ ownerType, ownerId }: DocumentListProps) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex justify-end">
         <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="h-4 w-4" />
               Evrak Ekle
             </Button>
           </DialogTrigger>
@@ -251,7 +260,7 @@ export function DocumentList({ ownerType, ownerId }: DocumentListProps) {
                     }))
                   }
                 />
-                <p className="text-xs text-slate-500">Maksimum 20MB, sadece PDF</p>
+                <p className="text-xs text-muted-foreground">Maksimum 20MB, sadece PDF</p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
@@ -270,97 +279,111 @@ export function DocumentList({ ownerType, ownerId }: DocumentListProps) {
         </Dialog>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8">Yükleniyor...</div>
-      ) : documents?.length === 0 ? (
-        <div className="text-center py-8 text-slate-500">
-          <FileText className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-          Henüz evrak yüklenmemiş
-        </div>
+      {!isLoading && documents?.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="Henüz evrak yok"
+          description="Yüklediğiniz evraklar burada listelenir."
+        />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Evrak</TableHead>
-              <TableHead>Tür</TableHead>
-              <TableHead>Boyut</TableHead>
-              <TableHead>Geçerlilik</TableHead>
-              <TableHead>Tarih</TableHead>
-              <TableHead className="w-[120px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents?.map((doc) => (
-              <TableRow key={doc.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-red-500" />
-                    <span className="font-medium">{doc.title}</span>
-                  </div>
-                  <p className="text-xs text-slate-500">{doc.fileName}</p>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{getDocTypeLabel(doc.docType)}</Badge>
-                </TableCell>
-                <TableCell>{formatFileSize(doc.fileSize)}</TableCell>
-                <TableCell>
-                  {doc.validTo ? (
-                    <div className="flex items-center gap-1">
-                      {isExpired(doc.validTo) ? (
-                        <Badge variant="destructive">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Süresi Dolmuş
-                        </Badge>
-                      ) : isExpiringSoon(doc.validTo) ? (
-                        <Badge variant="warning">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          {formatDate(doc.validTo)}
-                        </Badge>
-                      ) : (
-                        formatDate(doc.validTo)
-                      )}
-                    </div>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell>{formatDate(doc.createdAt)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        window.open(`/api/documents/${doc.id}/preview`, "_blank")
-                      }
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = `/api/documents/${doc.id}/download`;
-                        link.download = doc.fileName;
-                        link.click();
-                      }}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteId(doc.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evrak</TableHead>
+                <TableHead>Tür</TableHead>
+                <TableHead>Boyut</TableHead>
+                <TableHead>Geçerlilik</TableHead>
+                <TableHead>Tarih</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={6} />
+              ) : (
+                documents?.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{doc.title}</span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {doc.fileName}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{getDocTypeLabel(doc.docType)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {formatFileSize(doc.fileSize)}
+                    </TableCell>
+                    <TableCell>
+                      {doc.validTo ? (
+                        isExpired(doc.validTo) ? (
+                          <Badge variant="destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            Süresi Dolmuş
+                          </Badge>
+                        ) : isExpiringSoon(doc.validTo) ? (
+                          <Badge variant="warning">
+                            <AlertCircle className="h-3 w-3" />
+                            {formatDate(doc.validTo)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {formatDate(doc.validTo)}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(doc.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              window.open(`/api/documents/${doc.id}/preview`, "_blank")
+                            }
+                          >
+                            <Eye /> Önizle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = `/api/documents/${doc.id}/download`;
+                              link.download = doc.fileName;
+                              link.click();
+                            }}
+                          >
+                            <Download /> İndir
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(doc.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="text-destructive" /> Sil
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -375,7 +398,7 @@ export function DocumentList({ ownerType, ownerId }: DocumentListProps) {
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Sil
             </AlertDialogAction>

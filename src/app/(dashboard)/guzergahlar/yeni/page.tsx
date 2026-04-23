@@ -106,7 +106,7 @@ function NewRouteForm() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Yeni Güzergah</h1>
-          <p className="text-slate-500">Yeni bir güzergah tanımlayın</p>
+          <p className="text-muted-foreground">Yeni bir güzergah tanımlayın</p>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ function NewRouteForm() {
                 </SelectContent>
               </Select>
               {errors.projectId && (
-                <p className="text-sm text-red-500">{errors.projectId.message}</p>
+                <p className="text-xs text-destructive">{errors.projectId.message}</p>
               )}
             </div>
 
@@ -142,7 +142,7 @@ function NewRouteForm() {
               <Label htmlFor="ad">Güzergah Adı *</Label>
               <Input id="ad" {...register("ad")} placeholder="Fabrika - Merkez" />
               {errors.ad && (
-                <p className="text-sm text-red-500">{errors.ad.message}</p>
+                <p className="text-xs text-destructive">{errors.ad.message}</p>
               )}
             </div>
 
@@ -186,7 +186,7 @@ function NewRouteForm() {
                   placeholder="150.00"
                 />
                 {errors.birimFiyat && (
-                  <p className="text-sm text-red-500">{errors.birimFiyat.message}</p>
+                  <p className="text-xs text-destructive">{errors.birimFiyat.message}</p>
                 )}
               </div>
               <div className="space-y-2">

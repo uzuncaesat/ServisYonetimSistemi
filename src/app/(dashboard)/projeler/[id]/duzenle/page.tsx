@@ -99,7 +99,7 @@ export default function EditProjectPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Proje Düzenle</h1>
-          <p className="text-slate-500">{project?.ad}</p>
+          <p className="text-muted-foreground">{project?.ad}</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export default function EditProjectPage() {
               <Label htmlFor="ad">Proje Adı *</Label>
               <Input id="ad" {...register("ad")} />
               {errors.ad && (
-                <p className="text-sm text-red-500">{errors.ad.message}</p>
+                <p className="text-xs text-destructive">{errors.ad.message}</p>
               )}
             </div>
 

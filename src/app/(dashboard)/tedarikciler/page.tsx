@@ -21,11 +21,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Building2, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Supplier {
   id: string;
@@ -71,94 +80,126 @@ export default function SuppliersPage() {
       setDeleteId(null);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Tedarikçi silinemedi", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Tedarikçi silinemedi",
+        variant: "destructive",
+      });
     },
   });
+
+  const hasItems = (suppliers?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Tedarikçiler"
-        description="Tedarikçi firmalarını yönetin"
-        actionLabel="Yeni Tedarikçi"
+        description="Tedarikçi firmalarını yönetin."
+        actionLabel="Yeni tedarikçi"
         actionHref="/tedarikciler/yeni"
       />
 
-      <div className="overflow-x-auto min-w-0">
-        <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Firma Adı</TableHead>
-              <TableHead>Vergi No</TableHead>
-              <TableHead>Telefon</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Araç Sayısı</TableHead>
-              <TableHead className="w-[120px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      {!isLoading && !hasItems ? (
+        <EmptyState
+          icon={Building2}
+          title="Henüz tedarikçi yok"
+          description="İlk tedarikçi firmanızı ekleyerek başlayın."
+          action={
+            <Button asChild>
+              <Link href="/tedarikciler/yeni">Yeni tedarikçi</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Yükleniyor...
-                </TableCell>
+                <TableHead>Firma adı</TableHead>
+                <TableHead>Vergi no</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>E-posta</TableHead>
+                <TableHead>Araç</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ) : suppliers?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Henüz tedarikçi eklenmemiş
-                </TableCell>
-              </TableRow>
-            ) : (
-              suppliers?.map((supplier) => (
-                <TableRow 
-                  key={supplier.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/tedarikciler/${supplier.id}`)}
-                >
-                  <TableCell className="font-medium">{supplier.firmaAdi}</TableCell>
-                  <TableCell>{supplier.vergiNo || "-"}</TableCell>
-                  <TableCell>{supplier.telefon || "-"}</TableCell>
-                  <TableCell>{supplier.email || "-"}</TableCell>
-                  <TableCell>{supplier._count.vehicles}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/tedarikciler/${supplier.id}/duzenle`}>
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(supplier.id)}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={6} />
+              ) : (
+                suppliers?.map((supplier) => (
+                  <TableRow
+                    key={supplier.id}
+                    className="cursor-pointer"
+                    onClick={() =>
+                      router.push(`/tedarikciler/${supplier.id}`)
+                    }
+                  >
+                    <TableCell className="font-medium">
+                      {supplier.firmaAdi}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {supplier.vergiNo || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {supplier.telefon || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {supplier.email || "—"}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {supplier._count.vehicles}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/tedarikciler/${supplier.id}/duzenle`}>
+                                <Edit /> Düzenle
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(supplier.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="text-destructive" /> Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tedarikçiyi Sil</AlertDialogTitle>
+            <AlertDialogTitle>Tedarikçiyi sil</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu tedarikçiyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              Bu tedarikçiyi silmek istediğinizden emin misiniz? Bu işlem geri
+              alınamaz.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Sil
             </AlertDialogAction>

@@ -1,13 +1,18 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+export function ThemeToggleIcon({ className }: { className?: string }) {
+  const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -16,39 +21,35 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (!mounted) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn("w-full justify-start", className)}
-      >
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800/50 mr-3">
-          <Sun className="w-5 h-5" />
-        </div>
-        <span>Tema</span>
+      <Button variant="ghost" size="icon" className={className} aria-label="Tema">
+        <Sun className="h-4 w-4" />
       </Button>
     );
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className={cn(
-        "w-full justify-start text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300 group",
-        className
-      )}
-    >
-      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/50 transition-all duration-300 mr-3">
-        {theme === "dark" ? (
-          <Moon className="w-5 h-5 text-blue-400" />
-        ) : (
-          <Sun className="w-5 h-5 text-yellow-400" />
-        )}
-      </div>
-      <span className="flex-1 text-left">
-        {theme === "dark" ? "Karanlık Tema" : "Aydınlık Tema"}
-      </span>
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className={className} aria-label="Tema">
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          <Sun /> Aydınlık
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          <Moon /> Karanlık
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          <Monitor /> Sistem
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+}
+
+export function ThemeToggle({ className }: { className?: string }) {
+  return <ThemeToggleIcon className={className} />;
 }

@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -82,9 +87,7 @@ export default function SupplierReportsPage() {
 
   if (status === "loading" || !session) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-      </div>
+      <div className="p-8 text-center text-sm text-muted-foreground">Yükleniyor…</div>
     );
   }
 
@@ -94,25 +97,25 @@ export default function SupplierReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Hakediş Raporlarım</h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight">Hakediş Raporlarım</h1>
+        <p className="text-sm text-muted-foreground">
           Dönem seçerek raporunuzu görüntüleyebilir veya indirebilirsiniz.
         </p>
       </div>
 
-      <Card>
+      <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
             Rapor Görüntüle / İndir
           </CardTitle>
           <CardDescription>
-            Yönetici tarafından oluşturulan aylık hakediş raporunuzu buradan açabilirsiniz.
+            Yönetici tarafından oluşturulan aylık hakediş raporunuza erişin.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Yıl</Label>
               <Select
@@ -149,25 +152,26 @@ export default function SupplierReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end gap-2">
-              <Button
-                onClick={handleViewReport}
-                disabled={loading}
-                className="flex-1"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Görüntüle
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownloadReport}
-                disabled={loading}
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                İndir
-              </Button>
-            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleViewReport}
+              disabled={loading}
+              className="flex-1"
+            >
+              <Eye className="h-4 w-4" />
+              Görüntüle
+            </Button>
+            <Button
+              onClick={handleDownloadReport}
+              disabled={loading}
+              className="flex-1"
+            >
+              <Download className="h-4 w-4" />
+              İndir
+            </Button>
           </div>
         </CardContent>
       </Card>

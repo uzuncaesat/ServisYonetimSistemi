@@ -94,7 +94,7 @@ export default function EditDriverPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Şoför Düzenle</h1>
-          <p className="text-slate-500">{driver?.adSoyad}</p>
+          <p className="text-muted-foreground">{driver?.adSoyad}</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ export default function EditDriverPage() {
               <Label htmlFor="adSoyad">Ad Soyad *</Label>
               <Input id="adSoyad" {...register("adSoyad")} />
               {errors.adSoyad && (
-                <p className="text-sm text-red-500">{errors.adSoyad.message}</p>
+                <p className="text-xs text-destructive">{errors.adSoyad.message}</p>
               )}
             </div>
 
@@ -127,7 +127,7 @@ export default function EditDriverPage() {
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 

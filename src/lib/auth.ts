@@ -17,6 +17,23 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // DEV ONLY: Şifreyi doğrulamadan giriş (UI testi için).
+        // Sadece NODE_ENV=development + DEV_AUTH_BYPASS=true olduğunda aktif.
+        // Production'a asla sızmaz.
+        if (
+          process.env.NODE_ENV === "development" &&
+          process.env.DEV_AUTH_BYPASS === "true"
+        ) {
+          return {
+            id: "dev-bypass-admin",
+            email: credentials.email,
+            name: "Dev Admin",
+            role: "ADMIN" as UserRole,
+            supplierId: null,
+            organizationId: "dev-bypass-org",
+          };
+        }
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           select: { id: true, email: true, name: true, password: true, role: true, supplierId: true, organizationId: true, emailVerified: true, verificationCode: true },

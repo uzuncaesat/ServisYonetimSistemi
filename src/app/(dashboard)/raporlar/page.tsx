@@ -32,6 +32,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
 import { canGenerateFactoryReport } from "@/lib/auth";
 import { formatCurrency } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface Supplier {
   id: string;
@@ -230,11 +232,11 @@ export default function ReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               Hakediş Raporu Oluştur
             </CardTitle>
             <CardDescription>
-              Seçilen tedarikçi için aylık hakediş raporu oluşturun
+              Seçilen tedarikçi veya proje için aylık hakediş raporu oluşturun.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -252,8 +254,8 @@ export default function ReportsPage() {
                     }}
                     className="justify-start"
                   >
-                    <Building2 className="w-4 h-4 mr-2" />
-                    Tedarikçi Raporu
+                    <Building2 className="h-4 w-4" />
+                    Tedarikçi
                   </Button>
                   {canGenerateFactory && (
                     <Button
@@ -263,16 +265,19 @@ export default function ReportsPage() {
                         setReportType("factory");
                         setSelectedSupplierId("");
                       }}
-                      className="justify-start bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+                      className="justify-start"
                     >
-                      <Factory className="w-4 h-4 mr-2" />
-                      Fabrika Raporu
+                      <Factory className="h-4 w-4" />
+                      Fabrika
+                      <Badge variant="outline" className="ml-auto text-[10px]">
+                        Admin
+                      </Badge>
                     </Button>
                   )}
                 </div>
                 {reportType === "factory" && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Fabrika raporu projeye göre oluşturulur, fabrika fiyatları üzerinden hesaplanır.
+                  <p className="text-xs text-muted-foreground">
+                    Fabrika raporu projeye göre fabrika fiyatları üzerinden hesaplanır.
                   </p>
                 )}
               </div>
@@ -354,22 +359,22 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
                   onClick={handlePreview}
                   disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || previewLoading}
                   className="flex-1"
                 >
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye className="h-4 w-4" />
                   {previewLoading ? "Yükleniyor..." : "Önizleme"}
                 </Button>
                 <Button
                   onClick={handleGenerateReport}
                   disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || isGenerating}
-                  className={`flex-1 ${reportType === "factory" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+                  className="flex-1"
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="h-4 w-4" />
                   {isGenerating ? "Oluşturuluyor..." : "PDF İndir"}
                 </Button>
               </div>
@@ -381,36 +386,28 @@ export default function ReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Rapor İçeriği</CardTitle>
+            <CardDescription>PDF raporda yer alan bölümler.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 text-sm text-muted-foreground">
-              <div>
-                <h4 className="font-medium text-slate-900">1. Rapor Bilgileri</h4>
-                <p>Rapor numarası, tarihi ve dönemi</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-slate-900">2. Tedarikçi Bilgileri</h4>
-                <p>Firma adı, vergi no ve vergi dairesi</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-slate-900">3. Özet Tablo</h4>
-                <p>Araç, proje, güzergah bazlı sefer ve tutar özeti</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-slate-900">4. Hesaplama</h4>
-                <ul className="list-disc list-inside ml-2">
-                  <li>Toplam (Net)</li>
-                  <li>KDV (%20)</li>
-                  <li>Ara Toplam</li>
-                  <li>Tevkifat (5/10)</li>
-                  <li>Fatura Tutarı</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium text-slate-900">5. Günlük Detay</h4>
-                <p>Tarih bazlı tüm sefer kayıtları</p>
-              </div>
-            </div>
+            <ol className="space-y-3 text-sm">
+              {[
+                { title: "Rapor Bilgileri", desc: "Rapor numarası, tarihi ve dönemi." },
+                { title: "Tedarikçi Bilgileri", desc: "Firma adı, vergi no ve vergi dairesi." },
+                { title: "Özet Tablo", desc: "Araç, proje, güzergah bazlı sefer ve tutar özeti." },
+                { title: "Hesaplama", desc: "Toplam · KDV (%20) · Ara Toplam · Tevkifat (5/10) · Fatura tutarı." },
+                { title: "Günlük Detay", desc: "Tarih bazlı tüm sefer kayıtları." },
+              ].map((item, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 text-xs font-medium text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p className="text-muted-foreground">{item.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </CardContent>
         </Card>
       </div>
@@ -424,19 +421,25 @@ export default function ReportsPage() {
             </DialogTitle>
           </DialogHeader>
           {previewLoading ? (
-            <div className="py-8 text-center text-muted-foreground">Yükleniyor...</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">Yükleniyor…</div>
           ) : previewData ? (
             <div className="space-y-6 text-sm">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted/30 p-4">
                 <div>
-                  <p className="font-medium text-muted-foreground">Rapor No / Dönem</p>
-                  <p className="font-semibold">{previewData.reportNo} · {previewData.period}</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Rapor No / Dönem
+                  </p>
+                  <p className="mt-1 font-medium text-foreground">
+                    {previewData.reportNo} · {previewData.period}
+                  </p>
                 </div>
                 <div>
-                  <p className="font-medium text-muted-foreground">{previewData.isProjectReport ? "Proje" : "Tedarikçi"}</p>
-                  <p className="font-semibold">{previewData.supplier.firmaAdi}</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {previewData.isProjectReport ? "Proje" : "Tedarikçi"}
+                  </p>
+                  <p className="mt-1 font-medium text-foreground">{previewData.supplier.firmaAdi}</p>
                   {!previewData.isProjectReport && (previewData.supplier.vergiNo || previewData.supplier.vergiDairesi) && (
-                    <p className="text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       V.No: {previewData.supplier.vergiNo || "-"} · {previewData.supplier.vergiDairesi || "-"}
                     </p>
                   )}
@@ -444,9 +447,9 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Puantaj Özeti</h4>
+                <h4 className="mb-2 text-sm font-medium text-foreground">Puantaj Özeti</h4>
                 {previewData.summaryRows.length > 0 ? (
-                  <div className="border rounded-md overflow-x-auto">
+                  <div className="overflow-x-auto rounded-md border border-border">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -477,17 +480,20 @@ export default function ReportsPage() {
                     </Table>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground italic">Bu dönem için puantaj kaydı yok.</p>
+                  <p className="text-sm text-muted-foreground">Bu dönem için puantaj kaydı yok.</p>
                 )}
                 {previewData.summaryRows.length > 0 && (
-                  <p className="text-right font-medium mt-2">Puantaj Toplam: {formatCurrency(previewData.puantajTotal)}</p>
+                  <p className="mt-2 text-right text-sm">
+                    <span className="text-muted-foreground">Puantaj Toplam: </span>
+                    <span className="font-medium text-foreground">{formatCurrency(previewData.puantajTotal)}</span>
+                  </p>
                 )}
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Ek İş / Mesai</h4>
+                <h4 className="mb-2 text-sm font-medium text-foreground">Ek İş / Mesai</h4>
                 {previewData.extraWorkRows.length > 0 ? (
-                  <div className="border rounded-md overflow-x-auto">
+                  <div className="overflow-x-auto rounded-md border border-border">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -512,20 +518,26 @@ export default function ReportsPage() {
                     </Table>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground italic">Bu dönem için ek iş kaydı yok.</p>
+                  <p className="text-sm text-muted-foreground">Bu dönem için ek iş kaydı yok.</p>
                 )}
               </div>
 
-              <div className="p-4 bg-primary/10 rounded-lg space-y-1">
-                <p className="flex justify-between"><span>Toplam (Net)</span><span>{formatCurrency(previewData.grandTotal)}</span></p>
-                <p className="flex justify-between"><span>KDV (%20)</span><span>{formatCurrency(previewData.grandKdv)}</span></p>
-                <p className="flex justify-between"><span>Ara Toplam</span><span>{formatCurrency(previewData.grandAraToplam)}</span></p>
-                <p className="flex justify-between text-red-600"><span>Tevkifat (5/10)</span><span>-{formatCurrency(previewData.grandTevkifat)}</span></p>
-                <p className="flex justify-between font-bold text-lg pt-2"><span>Fatura Tutarı</span><span>{formatCurrency(previewData.grandFatura)}</span></p>
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
+                <div className="space-y-1.5">
+                  <p className="flex justify-between"><span className="text-muted-foreground">Toplam (Net)</span><span className="font-medium text-foreground">{formatCurrency(previewData.grandTotal)}</span></p>
+                  <p className="flex justify-between"><span className="text-muted-foreground">KDV (%20)</span><span className="font-medium text-foreground">{formatCurrency(previewData.grandKdv)}</span></p>
+                  <p className="flex justify-between"><span className="text-muted-foreground">Ara Toplam</span><span className="font-medium text-foreground">{formatCurrency(previewData.grandAraToplam)}</span></p>
+                  <p className="flex justify-between"><span className="text-muted-foreground">Tevkifat (5/10)</span><span className="font-medium text-destructive">-{formatCurrency(previewData.grandTevkifat)}</span></p>
+                </div>
+                <Separator className="my-3" />
+                <p className="flex items-baseline justify-between">
+                  <span className="text-sm font-medium text-foreground">Fatura Tutarı</span>
+                  <span className="text-lg font-semibold text-primary">{formatCurrency(previewData.grandFatura)}</span>
+                </p>
               </div>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground">Önizleme yüklenemedi.</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">Önizleme yüklenemedi.</div>
           )}
         </DialogContent>
       </Dialog>

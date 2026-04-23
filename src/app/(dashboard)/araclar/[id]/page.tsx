@@ -108,7 +108,7 @@ export default function VehicleDetailPage() {
               <Car className="w-6 h-6" />
               {vehicle.plaka}
             </h1>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               {vehicle.marka} {vehicle.model}
             </p>
           </div>
@@ -150,17 +150,17 @@ export default function VehicleDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-slate-500">Plaka</p>
+                  <p className="text-sm text-muted-foreground">Plaka</p>
                   <p className="font-medium">{vehicle.plaka}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Marka / Model</p>
+                  <p className="text-sm text-muted-foreground">Marka / Model</p>
                   <p className="font-medium">
                     {vehicle.marka || "-"} {vehicle.model || ""}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Kişi Sayısı</p>
+                  <p className="text-sm text-muted-foreground">Kişi Sayısı</p>
                   <p className="font-medium">{vehicle.kisiSayisi || "-"}</p>
                 </div>
               </CardContent>
@@ -176,7 +176,7 @@ export default function VehicleDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-slate-500">Firma Adı</p>
+                  <p className="text-sm text-muted-foreground">Firma Adı</p>
                   <Link
                     href={`/tedarikciler/${vehicle.supplier.id}`}
                     className="font-medium text-primary hover:underline"
@@ -185,7 +185,7 @@ export default function VehicleDetailPage() {
                   </Link>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Telefon</p>
+                  <p className="text-sm text-muted-foreground">Telefon</p>
                   <p className="font-medium">{vehicle.supplier.telefon || "-"}</p>
                 </div>
               </CardContent>
@@ -203,7 +203,7 @@ export default function VehicleDetailPage() {
                 {vehicle.driver ? (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-slate-500">Ad Soyad</p>
+                      <p className="text-sm text-muted-foreground">Ad Soyad</p>
                       <Link
                         href={`/soforler/${vehicle.driver.id}`}
                         className="font-medium text-primary hover:underline"
@@ -212,12 +212,12 @@ export default function VehicleDetailPage() {
                       </Link>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Telefon</p>
+                      <p className="text-sm text-muted-foreground">Telefon</p>
                       <p className="font-medium">{vehicle.driver.telefon || "-"}</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-center py-4">
+                  <p className="text-muted-foreground text-center py-4">
                     Şoför atanmamış
                   </p>
                 )}
@@ -271,7 +271,7 @@ export default function VehicleDetailPage() {
             </CardHeader>
             <CardContent>
               {vehicle.projects.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   Bu araç henüz bir projeye atanmamış
                 </p>
               ) : (

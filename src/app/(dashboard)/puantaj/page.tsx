@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -26,7 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { ArrowRight, ClipboardList } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Project {
   id: string;
@@ -61,7 +63,9 @@ async function fetchProjects(): Promise<Project[]> {
   return res.json();
 }
 
-async function fetchProjectVehicles(projectId: string): Promise<{ vehicle: Vehicle }[]> {
+async function fetchProjectVehicles(
+  projectId: string
+): Promise<{ vehicle: Vehicle }[]> {
   const res = await fetch(`/api/projects/${projectId}/vehicles`);
   if (!res.ok) throw new Error("Araçlar yüklenemedi");
   return res.json();
@@ -89,8 +93,18 @@ async function createTimesheet(data: {
 }
 
 const monthNames = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+  "Ocak",
+  "Şubat",
+  "Mart",
+  "Nisan",
+  "Mayıs",
+  "Haziran",
+  "Temmuz",
+  "Ağustos",
+  "Eylül",
+  "Ekim",
+  "Kasım",
+  "Aralık",
 ];
 
 const currentYear = new Date().getFullYear();
@@ -130,13 +144,21 @@ export default function TimesheetPage() {
       router.push(`/puantaj/${data.id}`);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Puantaj oluşturulamadı", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Puantaj oluşturulamadı",
+        variant: "destructive",
+      });
     },
   });
 
   const handleCreateTimesheet = () => {
     if (!selectedProjectId || !selectedVehicleId) {
-      toast({ title: "Hata", description: "Proje ve araç seçimi zorunludur", variant: "destructive" });
+      toast({
+        title: "Eksik bilgi",
+        description: "Proje ve araç seçimi zorunludur.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -149,25 +171,32 @@ export default function TimesheetPage() {
   };
 
   const calculateTotal = (entries: Timesheet["entries"]) => {
-    return entries.reduce((sum, e) => sum + e.seferSayisi * e.birimFiyatSnapshot, 0);
+    return entries.reduce(
+      (sum, e) => sum + e.seferSayisi * e.birimFiyatSnapshot,
+      0
+    );
   };
+
+  const hasTimesheets = (timesheets?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Puantaj"
-        description="Aylık sefer kayıtlarını yönetin"
+        description="Aylık sefer kayıtlarını yönetin."
       />
 
-      {/* Create New Timesheet */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Yeni Puantaj Oluştur</CardTitle>
+          <CardTitle>Yeni puantaj oluştur</CardTitle>
+          <CardDescription>
+            Proje ve araç seçerek ay için yeni bir puantaj açın.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label>Proje</Label>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Proje</Label>
               <Select
                 value={selectedProjectId}
                 onValueChange={(value) => {
@@ -188,8 +217,8 @@ export default function TimesheetPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Araç</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Araç</Label>
               <Select
                 value={selectedVehicleId}
                 onValueChange={setSelectedVehicleId}
@@ -201,15 +230,15 @@ export default function TimesheetPage() {
                 <SelectContent>
                   {projectVehicles?.map((pv) => (
                     <SelectItem key={pv.vehicle.id} value={pv.vehicle.id}>
-                      {pv.vehicle.plaka} - {pv.vehicle.supplier.firmaAdi}
+                      {pv.vehicle.plaka} — {pv.vehicle.supplier.firmaAdi}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Yıl</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Yıl</Label>
               <Select
                 value={selectedYear.toString()}
                 onValueChange={(value) => setSelectedYear(parseInt(value))}
@@ -218,17 +247,19 @@ export default function TimesheetPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
+                  {[currentYear - 1, currentYear, currentYear + 1].map(
+                    (year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Ay</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Ay</Label>
               <Select
                 value={selectedMonth.toString()}
                 onValueChange={(value) => setSelectedMonth(parseInt(value))}
@@ -246,33 +277,38 @@ export default function TimesheetPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
+            <div className="flex items-end">
               <Button
                 onClick={handleCreateTimesheet}
-                disabled={!selectedProjectId || !selectedVehicleId || createMutation.isPending}
+                disabled={
+                  !selectedProjectId ||
+                  !selectedVehicleId ||
+                  createMutation.isPending
+                }
                 className="w-full"
               >
-                {createMutation.isPending ? "Oluşturuluyor..." : "Puantaj Aç"}
+                {createMutation.isPending ? "Oluşturuluyor…" : "Puantaj aç"}
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Existing Timesheets */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Mevcut Puantajlar</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {timesheetsLoading ? (
-            <div className="text-center py-8">Yükleniyor...</div>
-          ) : timesheets?.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              Henüz puantaj kaydı bulunmuyor
-            </div>
-          ) : (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-semibold tracking-tight">
+            Mevcut puantajlar
+          </h2>
+        </div>
+
+        {!timesheetsLoading && !hasTimesheets ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="Henüz puantaj yok"
+            description="Yukarıdan yeni bir puantaj oluşturun."
+          />
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -280,51 +316,64 @@ export default function TimesheetPage() {
                   <TableHead>Proje</TableHead>
                   <TableHead>Araç</TableHead>
                   <TableHead>Tedarikçi</TableHead>
-                  <TableHead>Toplam Sefer</TableHead>
-                  <TableHead>Toplam Tutar</TableHead>
-                  <TableHead className="w-[80px]">İşlem</TableHead>
+                  <TableHead>Sefer</TableHead>
+                  <TableHead>Tutar</TableHead>
+                  <TableHead className="w-[60px] text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {timesheets?.map((ts) => {
-                  const totalTrips = ts.entries.reduce((sum, e) => sum + e.seferSayisi, 0);
-                  const totalAmount = calculateTotal(ts.entries);
-                  return (
-                    <TableRow key={ts.id}>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {monthNames[ts.ay - 1]} {ts.yil}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/projeler/${ts.project.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {ts.project.ad}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {ts.vehicle.plaka}
-                      </TableCell>
-                      <TableCell>{ts.vehicle.supplier.firmaAdi}</TableCell>
-                      <TableCell>{totalTrips}</TableCell>
-                      <TableCell>{formatCurrency(totalAmount)}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/puantaj/${ts.id}`}>
-                            <Eye className="w-4 h-4" />
+                {timesheetsLoading ? (
+                  <TableSkeleton columns={7} />
+                ) : (
+                  timesheets?.map((ts) => {
+                    const totalTrips = ts.entries.reduce(
+                      (sum, e) => sum + e.seferSayisi,
+                      0
+                    );
+                    const totalAmount = calculateTotal(ts.entries);
+                    return (
+                      <TableRow
+                        key={ts.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/puantaj/${ts.id}`)}
+                      >
+                        <TableCell>
+                          <Badge variant="default">
+                            {monthNames[ts.ay - 1]} {ts.yil}
+                          </Badge>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            href={`/projeler/${ts.project.id}`}
+                            className="text-foreground hover:text-primary transition-colors"
+                          >
+                            {ts.project.ad}
                           </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {ts.vehicle.plaka}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {ts.vehicle.supplier.firmaAdi}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {totalTrips}
+                        </TableCell>
+                        <TableCell className="tabular-nums font-medium">
+                          {formatCurrency(totalAmount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <ArrowRight className="h-4 w-4 text-muted-foreground inline-block" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

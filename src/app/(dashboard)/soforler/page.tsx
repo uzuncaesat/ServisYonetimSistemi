@@ -22,11 +22,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Edit, MoreHorizontal, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Driver {
   id: string;
@@ -75,102 +84,127 @@ export default function DriversPage() {
       setDeleteId(null);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Şoför silinemedi", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Şoför silinemedi",
+        variant: "destructive",
+      });
     },
   });
+
+  const hasItems = (drivers?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Şoförler"
-        description="Şoförleri yönetin"
-        actionLabel="Yeni Şoför"
+        description="Şoförleri yönetin."
+        actionLabel="Yeni şoför"
         actionHref="/soforler/yeni"
       />
 
-      <div className="overflow-x-auto min-w-0">
-        <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ad Soyad</TableHead>
-              <TableHead>Telefon</TableHead>
-              <TableHead>Ehliyet Sınıfı</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Atanmış Araç</TableHead>
-              <TableHead className="w-[120px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      {!isLoading && !hasItems ? (
+        <EmptyState
+          icon={Users}
+          title="Henüz şoför yok"
+          description="İlk şoförü ekleyerek araç atamalarına başlayın."
+          action={
+            <Button asChild>
+              <Link href="/soforler/yeni">Yeni şoför</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Yükleniyor...
-                </TableCell>
+                <TableHead>Ad Soyad</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Ehliyet</TableHead>
+                <TableHead>E-posta</TableHead>
+                <TableHead>Atanmış araç</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ) : drivers?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Henüz şoför eklenmemiş
-                </TableCell>
-              </TableRow>
-            ) : (
-              drivers?.map((driver) => (
-                <TableRow 
-                  key={driver.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/soforler/${driver.id}`)}
-                >
-                  <TableCell className="font-medium">{driver.adSoyad}</TableCell>
-                  <TableCell>{driver.telefon || "-"}</TableCell>
-                  <TableCell>
-                    {driver.ehliyetSinifi ? (
-                      <Badge variant="secondary">{driver.ehliyetSinifi}</Badge>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{driver.email || "-"}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    {driver.vehicle ? (
-                      <Link
-                        href={`/araclar/${driver.vehicle.id}`}
-                        className="text-primary hover:underline"
-                      >
-                        {driver.vehicle.plaka}
-                      </Link>
-                    ) : (
-                      <span className="text-slate-400">Atanmamış</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/soforler/${driver.id}/duzenle`}>
-                          <Edit className="w-4 h-4" />
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={6} />
+              ) : (
+                drivers?.map((driver) => (
+                  <TableRow
+                    key={driver.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/soforler/${driver.id}`)}
+                  >
+                    <TableCell className="font-medium">
+                      {driver.adSoyad}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {driver.telefon || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {driver.ehliyetSinifi ? (
+                        <Badge variant="default">{driver.ehliyetSinifi}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {driver.email || "—"}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {driver.vehicle ? (
+                        <Link
+                          href={`/araclar/${driver.vehicle.id}`}
+                          className="text-foreground hover:text-primary transition-colors"
+                        >
+                          {driver.vehicle.plaka}
                         </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(driver.id)}
+                      ) : (
+                        <span className="text-muted-foreground">Atanmamış</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/soforler/${driver.id}/duzenle`}>
+                                <Edit /> Düzenle
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(driver.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="text-destructive" /> Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Şoförü Sil</AlertDialogTitle>
+            <AlertDialogTitle>Şoförü sil</AlertDialogTitle>
             <AlertDialogDescription>
               Bu şoförü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
             </AlertDialogDescription>
@@ -179,7 +213,7 @@ export default function DriversPage() {
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Sil
             </AlertDialogAction>

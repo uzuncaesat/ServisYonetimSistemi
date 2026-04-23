@@ -264,7 +264,7 @@ export default function TimesheetDetailPage() {
             <h1 className="text-2xl font-bold">
               Puantaj - {monthNames[timesheet.ay - 1]} {timesheet.yil}
             </h1>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               {timesheet.project.ad} | {timesheet.vehicle.plaka} | {timesheet.vehicle.supplier.firmaAdi}
             </p>
           </div>
@@ -330,7 +330,7 @@ export default function TimesheetDetailPage() {
         </CardHeader>
         <CardContent>
           {!routes || routes.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               Bu projede tanımlı güzergah bulunmuyor.
               <Link href={`/guzergahlar/yeni?projectId=${timesheet.project.id}`} className="text-primary hover:underline ml-2">
                 Güzergah ekle
@@ -505,7 +505,7 @@ export default function TimesheetDetailPage() {
             </div>
             <div className="bg-muted p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Tevkifat (5/10)</p>
-              <p className="text-xl font-bold text-red-600">-{formatCurrency(totals.tevkifat)}</p>
+              <p className="text-xl font-semibold text-destructive">-{formatCurrency(totals.tevkifat)}</p>
             </div>
             <div className="bg-primary/10 p-4 rounded-lg">
               <p className="text-sm text-primary">Fatura Tutarı</p>

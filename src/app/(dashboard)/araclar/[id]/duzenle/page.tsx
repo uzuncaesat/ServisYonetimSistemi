@@ -137,7 +137,7 @@ export default function EditVehiclePage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Araç Düzenle</h1>
-          <p className="text-slate-500">{vehicle?.plaka}</p>
+          <p className="text-muted-foreground">{vehicle?.plaka}</p>
         </div>
       </div>
 
@@ -155,7 +155,7 @@ export default function EditVehiclePage() {
                 className="uppercase"
               />
               {errors.plaka && (
-                <p className="text-sm text-red-500">{errors.plaka.message}</p>
+                <p className="text-xs text-destructive">{errors.plaka.message}</p>
               )}
             </div>
 
@@ -197,7 +197,7 @@ export default function EditVehiclePage() {
                 </SelectContent>
               </Select>
               {errors.supplierId && (
-                <p className="text-sm text-red-500">{errors.supplierId.message}</p>
+                <p className="text-xs text-destructive">{errors.supplierId.message}</p>
               )}
             </div>
 

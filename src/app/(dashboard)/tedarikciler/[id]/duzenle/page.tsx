@@ -97,7 +97,7 @@ export default function EditSupplierPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Tedarikçi Düzenle</h1>
-          <p className="text-slate-500">{supplier?.firmaAdi}</p>
+          <p className="text-muted-foreground">{supplier?.firmaAdi}</p>
         </div>
       </div>
 
@@ -111,7 +111,7 @@ export default function EditSupplierPage() {
               <Label htmlFor="firmaAdi">Firma Adı *</Label>
               <Input id="firmaAdi" {...register("firmaAdi")} />
               {errors.firmaAdi && (
-                <p className="text-sm text-red-500">{errors.firmaAdi.message}</p>
+                <p className="text-xs text-destructive">{errors.firmaAdi.message}</p>
               )}
             </div>
 
@@ -135,7 +135,7 @@ export default function EditSupplierPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" {...register("email")} />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-xs text-destructive">{errors.email.message}</p>
                 )}
               </div>
             </div>

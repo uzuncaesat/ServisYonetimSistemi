@@ -27,64 +27,68 @@ export function TrialBanner() {
   const { data: status } = useQuery({
     queryKey: ["org-status"],
     queryFn: fetchOrgStatus,
-    staleTime: 5 * 60 * 1000, // 5 dakika
+    staleTime: 5 * 60 * 1000,
     refetchOnMount: false,
   });
 
   if (!status) return null;
-
-  // Enterprise veya ücretli plan - banner gösterme
   if (status.plan !== "free") return null;
 
-  // Deneme süresi dolmuş
   if (status.isTrialExpired) {
     return (
-      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 mb-6">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-red-700 dark:text-red-400">
-              Deneme Süreniz Doldu
-            </h4>
-            <p className="text-sm text-red-600 dark:text-red-400/80 mt-1">
-              {status.message || "Ücretsiz deneme süreniz sona erdi. Hizmetlerimize devam etmek için bir plan seçin."}
-            </p>
-            <div className="mt-3">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700" asChild>
-                <Link href="/ayarlar/abonelik">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Plan Seç
-                </Link>
-              </Button>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-semibold text-foreground">
+                Deneme süreniz doldu
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {status.message ||
+                  "Ücretsiz deneme süreniz sona erdi. Hizmetlerimize devam etmek için bir plan seçin."}
+              </p>
             </div>
+            <Button size="sm" variant="destructive" asChild>
+              <Link href="/ayarlar/abonelik">
+                <Sparkles className="h-3.5 w-3.5" />
+                Plan seç
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Deneme süresi devam ediyor (7 gün veya daha az kaldıysa göster)
   if (status.daysRemaining !== null && status.daysRemaining <= 7) {
     return (
-      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4 mb-6">
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
         <div className="flex items-start gap-3">
-          <Clock className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-amber-700 dark:text-amber-400">
-              Deneme Süreniz Bitiyor
-            </h4>
-            <p className="text-sm text-amber-600 dark:text-amber-400/80 mt-1">
-              Ücretsiz deneme sürenizin bitmesine <strong>{status.daysRemaining} gün</strong> kaldı.
-              Kesintisiz hizmet için bir plan seçin.
-            </p>
-            <div className="mt-3">
-              <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100" asChild>
-                <Link href="/ayarlar/abonelik">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Planları Gör
-                </Link>
-              </Button>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Clock className="h-4 w-4" />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-semibold text-foreground">
+                Deneme süreniz bitiyor
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Ücretsiz deneme sürenizin bitmesine{" "}
+                <strong className="text-foreground">
+                  {status.daysRemaining} gün
+                </strong>{" "}
+                kaldı.
+              </p>
             </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/ayarlar/abonelik">
+                <Sparkles className="h-3.5 w-3.5" />
+                Planları gör
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

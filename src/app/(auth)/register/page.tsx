@@ -6,7 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, Mail, Lock, User, Loader2, ArrowLeft, KeyRound } from "lucide-react";
+import {
+  Truck,
+  Loader2,
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+} from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -119,213 +125,192 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 animate-gradient" />
-      
-      {/* Floating shapes */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-float-slow" />
-        <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-emerald-400/10 rounded-full blur-2xl animate-float animation-delay-300" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-cyan-400/15 rounded-full blur-2xl animate-float-slow animation-delay-500" />
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      <div className="relative hidden lg:flex flex-col justify-between bg-zinc-950 text-zinc-100 p-10 overflow-hidden">
+        <div className="bg-grid absolute inset-0 opacity-40" />
+        <div className="bg-spotlight absolute inset-0" />
+
+        <div className="relative flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Truck className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">UZHAN ERP</span>
+        </div>
+
+        <div className="relative max-w-md space-y-4">
+          <h2 className="text-2xl font-semibold leading-tight tracking-tight">
+            Birkaç saniyede hesabınızı oluşturun.
+          </h2>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Kayıt olduktan sonra tüm servis operasyonlarınızı yönetmeye
+            başlayabilirsiniz. Projeler, araçlar ve puantaj kayıtları tek bir
+            panelde.
+          </p>
+        </div>
+
+        <div className="relative text-xs text-zinc-500">
+          © {new Date().getFullYear()} UZHAN ERP. Tüm hakları saklıdır.
+        </div>
       </div>
 
-      {/* Grid pattern overlay */}
-      <div 
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Register Card */}
-      <div className="relative z-10 w-full max-w-md mx-4 animate-scale-in">
-        <div className="backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-10 pb-6 text-center">
-            {/* Logo */}
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm mb-6 animate-pulse-glow">
-              <Truck className="w-10 h-10 text-white" />
+      <div className="flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="flex flex-col items-start gap-2">
+            <div className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-2">
+              <Truck className="h-5 w-5" />
             </div>
-            
-            <h1 className="text-3xl font-bold text-white mb-2 animate-fade-in-up">
-              Kayıt Ol
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              {step === "form" ? "Yeni hesap oluşturun" : "E-postanızı doğrulayın"}
             </h1>
-            <p className="text-emerald-100 text-sm animate-fade-in-up animation-delay-100">
-              UZHAN ERP - Milenyum Lite
+            <p className="text-sm text-muted-foreground">
+              {step === "form"
+                ? "Başlamak için aşağıdaki formu doldurun."
+                : `${verifyEmail} adresine 6 haneli kod gönderildi.`}
             </p>
           </div>
 
-          {/* Form / Doğrulama */}
-          <div className="px-8 pb-10">
-            {step === "form" ? (
+          {step === "form" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2 animate-fade-in-up animation-delay-200">
-                <Label htmlFor="name" className="text-white/90 text-sm font-medium">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-medium">
                   Ad Soyad
                 </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="Adınız Soyadınız"
-                    required
-                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl"
-                  />
-                </div>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Adınız Soyadınız"
+                  required
+                  autoComplete="name"
+                />
               </div>
 
-              <div className="space-y-2 animate-fade-in-up animation-delay-300">
-                <Label htmlFor="email" className="text-white/90 text-sm font-medium">
-                  Email
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-medium">
+                  E-posta
                 </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="ornek@email.com"
-                    required
-                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl"
-                  />
-                </div>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="ornek@email.com"
+                  required
+                  autoComplete="email"
+                />
               </div>
-              
-              <div className="space-y-2 animate-fade-in-up animation-delay-400">
-                <Label htmlFor="password" className="text-white/90 text-sm font-medium">
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-medium">
                   Şifre
                 </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl"
-                  />
-                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="En az 6 karakter"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
               </div>
 
-              <div className="space-y-2 animate-fade-in-up animation-delay-500">
-                <Label htmlFor="confirmPassword" className="text-white/90 text-sm font-medium">
-                  Şifre Tekrar
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword" className="text-xs font-medium">
+                  Şifre tekrar
                 </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl"
-                  />
-                </div>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
               </div>
 
-              {error && (
-                <div className="animate-fade-in bg-red-500/20 border border-red-400/30 text-red-100 text-sm text-center py-3 px-4 rounded-xl">
-                  {error}
+              {error ? (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-px" />
+                  <span>{error}</span>
                 </div>
-              )}
+              ) : null}
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-white text-teal-700 hover:bg-white/90 font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-white/20 animate-fade-in-up animation-delay-600"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Kayıt yapılıyor...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Kayıt yapılıyor…
                   </>
                 ) : (
-                  "Kayıt Ol"
+                  <>
+                    Kayıt ol <ArrowRight className="h-4 w-4" />
+                  </>
                 )}
               </Button>
             </form>
-            ) : (
+          ) : (
             <form onSubmit={handleVerifySubmit} className="space-y-4">
-              <p className="text-white/90 text-sm text-center mb-2">
-                <strong>{verifyEmail}</strong> adresine gönderilen 6 haneli kodu girin.
-              </p>
-              <p className="text-amber-200/90 text-xs text-center">
+              <div className="space-y-1.5">
+                <Label htmlFor="code" className="text-xs font-medium">
+                  Doğrulama kodu
+                </Label>
+                <Input
+                  id="code"
+                  name="code"
+                  type="text"
+                  placeholder="000000"
+                  maxLength={6}
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="text-center text-lg tracking-[0.4em] font-mono"
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
                 E-posta gelmediyse spam klasörünü kontrol edin veya{" "}
                 <button
                   type="button"
                   onClick={handleResendCode}
                   disabled={resendCooldown > 0 || loading}
-                  className="underline hover:no-underline font-medium"
+                  className="font-medium text-foreground underline-offset-4 hover:underline disabled:opacity-50"
                 >
-                  {resendCooldown > 0 ? `${resendCooldown} sn sonra tekrar gönder` : "kodu tekrar gönderin"}
+                  {resendCooldown > 0
+                    ? `${resendCooldown} sn sonra tekrar gönder`
+                    : "kodu tekrar gönderin"}
                 </button>
+                .
               </p>
-              <div className="space-y-2">
-                <Label htmlFor="code" className="text-white/90 text-sm font-medium">
-                  Doğrulama Kodu
-                </Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                  <Input
-                    id="code"
-                    name="code"
-                    type="text"
-                    placeholder="000000"
-                    maxLength={6}
-                    required
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className="pl-11 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 rounded-xl text-center text-xl tracking-[0.5em] font-mono"
-                  />
+
+              {error ? (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-px" />
+                  <span>{error}</span>
                 </div>
-              </div>
-              {error && (
-                <div className="animate-fade-in bg-red-500/20 border border-red-400/30 text-red-100 text-sm text-center py-3 px-4 rounded-xl">
-                  {error}
-                </div>
-              )}
-              <Button
-                type="submit"
-                className="w-full h-12 bg-white text-teal-700 hover:bg-white/90 font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-white/20"
-                disabled={loading}
-              >
+              ) : null}
+
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Doğrulanıyor...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Doğrulanıyor…
                   </>
                 ) : (
-                  "E-postayı Doğrula"
+                  "E-postayı doğrula"
                 )}
               </Button>
             </form>
-            )}
+          )}
 
-            {/* Login link */}
-            <div className="mt-6 text-center animate-fade-in-up animation-delay-700">
-              <Link 
-                href="/login" 
-                className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm transition-colors duration-300"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Zaten hesabınız var mı? Giriş yapın
-              </Link>
-            </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Giriş sayfasına dön
+            </Link>
           </div>
         </div>
-
-        {/* Footer text */}
-        <p className="text-center text-white/50 text-xs mt-6 animate-fade-in animation-delay-800">
-          © 2024 Uzhan ERP. Tüm hakları saklıdır.
-        </p>
       </div>
     </div>
   );

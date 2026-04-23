@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -11,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Car, FolderKanban, TrendingUp, Banknote } from "lucide-react";
+import { Car, FolderKanban, TrendingUp, Banknote, type LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface DashboardData {
   supplier: {
@@ -51,6 +59,37 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  loading?: boolean;
+}
+
+function StatCard({ label, value, icon: Icon, loading }: StatCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-muted/40 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="mt-4 space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+          {loading ? (
+            <Skeleton className="h-8 w-20" />
+          ) : (
+            <p className="text-2xl font-semibold tracking-tight tabular-nums">
+              {value}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SupplierDashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["supplier-dashboard"],
@@ -59,99 +98,68 @@ export default function SupplierDashboardPage() {
     refetchOnMount: "always",
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3" />
-          <p className="text-muted-foreground">Yükleniyor...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return <div className="p-8 text-center text-muted-foreground">Veriler yüklenemedi</div>;
-  }
-
-  const statCards = [
-    {
-      title: "Araç Sayısı",
-      value: data.stats.vehicleCount,
-      icon: Car,
-      color: "text-blue-600",
-      bg: "bg-blue-50 dark:bg-blue-950/30",
-    },
-    {
-      title: "Aktif Proje",
-      value: data.stats.projectCount,
-      icon: FolderKanban,
-      color: "text-purple-600",
-      bg: "bg-purple-50 dark:bg-purple-950/30",
-    },
-    {
-      title: "Bu Ay Sefer",
-      value: data.stats.currentMonthTrips,
-      icon: TrendingUp,
-      color: "text-green-600",
-      bg: "bg-green-50 dark:bg-green-950/30",
-    },
-    {
-      title: "Bu Ay Hakediş",
-      value: formatCurrency(data.stats.currentMonthRevenue),
-      icon: Banknote,
-      color: "text-amber-600",
-      bg: "bg-amber-50 dark:bg-amber-950/30",
-    },
-  ];
+  const stats = data?.stats;
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Hoş Geldiniz, {data.supplier.firmaAdi}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight">
+          {data ? `Hoş geldiniz, ${data.supplier.firmaAdi}` : "Hoş geldiniz"}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Araçlarınızın durumunu ve hakediş bilgilerinizi buradan takip edebilirsiniz.
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className="border-0 shadow-md">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-xl ${stat.bg}`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Araç Sayısı"
+          value={stats?.vehicleCount ?? 0}
+          icon={Car}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Aktif Proje"
+          value={stats?.projectCount ?? 0}
+          icon={FolderKanban}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Bu Ay Sefer"
+          value={stats?.currentMonthTrips ?? 0}
+          icon={TrendingUp}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Bu Ay Hakediş"
+          value={stats ? formatCurrency(stats.currentMonthRevenue) : "—"}
+          icon={Banknote}
+          loading={isLoading}
+        />
       </div>
 
-      {/* Vehicles Table */}
-      <Card className="border-0 shadow-md">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Car className="w-5 h-5" />
+            <Car className="h-4 w-4 text-muted-foreground" />
             Araçlarım
           </CardTitle>
+          <CardDescription>
+            Şoförler ve atandıkları projelerle birlikte araç listeniz.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {data.vehicles.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Henüz kayıtlı araç bulunmuyor.
-            </p>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-5">
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : !data?.vehicles.length ? (
+            <EmptyState
+              icon={Car}
+              title="Henüz araç yok"
+              description="Size tanımlanmış araçlar burada listelenir."
+              className="m-5"
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -167,20 +175,22 @@ export default function SupplierDashboardPage() {
                   {data.vehicles.map((vehicle) => (
                     <TableRow key={vehicle.id}>
                       <TableCell className="font-medium">{vehicle.plaka}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-muted-foreground">
                         {vehicle.marka || "-"} {vehicle.model || ""}
                       </TableCell>
-                      <TableCell>{vehicle.driver || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {vehicle.driver || "-"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {vehicle.projects.length > 0 ? (
                             vehicle.projects.map((p, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
+                              <Badge key={i} variant="secondary">
                                 {p}
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </div>
                       </TableCell>

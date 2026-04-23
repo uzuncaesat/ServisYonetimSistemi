@@ -1,13 +1,22 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Bell, Check, CheckCheck, FileWarning, ClipboardCheck, FileText, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  FileWarning,
+  ClipboardCheck,
+  FileText,
+  ExternalLink,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Notification {
   id: string;
@@ -42,16 +51,16 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationColor(type: string) {
+function getNotificationAccent(type: string) {
   switch (type) {
     case "DOCUMENT_EXPIRY":
-      return "text-red-500";
+      return "text-destructive";
     case "TIMESHEET_APPROVED":
-      return "text-green-500";
+      return "text-emerald-600 dark:text-emerald-400";
     case "REPORT_READY":
-      return "text-blue-500";
+      return "text-primary";
     default:
-      return "text-gray-500";
+      return "text-muted-foreground";
   }
 }
 
@@ -61,7 +70,7 @@ export default function SupplierNotificationsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    refetchInterval: 30000, // 30 saniyede bir kontrol
+    refetchInterval: 30000,
   });
 
   const markReadMutation = useMutation({
@@ -76,6 +85,7 @@ export default function SupplierNotificationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-badge"] });
     },
   });
 
@@ -91,16 +101,19 @@ export default function SupplierNotificationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-badge"] });
     },
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Bildirimler</h1>
-          <p className="text-muted-foreground mt-1">
-            {data?.unreadCount ? `${data.unreadCount} okunmamış bildirim` : "Tüm bildirimler okundu"}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight">Bildirimler</h1>
+          <p className="text-sm text-muted-foreground">
+            {data?.unreadCount
+              ? `${data.unreadCount} okunmamış bildirim`
+              : "Tüm bildirimler okundu."}
           </p>
         </div>
         {data?.unreadCount ? (
@@ -109,84 +122,102 @@ export default function SupplierNotificationsPage() {
             onClick={() => markAllReadMutation.mutate()}
             disabled={markAllReadMutation.isPending}
           >
-            <CheckCheck className="w-4 h-4 mr-2" />
-            Tümünü Okundu İşaretle
+            <CheckCheck className="h-4 w-4" />
+            Tümünü okundu işaretle
           </Button>
         ) : null}
       </div>
 
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-            </div>
-          ) : !data?.notifications.length ? (
-            <div className="py-12 text-center">
-              <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">Henüz bildirim bulunmuyor.</p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {data.notifications.map((notification) => {
-                const Icon = getNotificationIcon(notification.type);
-                const iconColor = getNotificationColor(notification.type);
-
-                return (
-                  <div
-                    key={notification.id}
-                    className={`flex items-start gap-4 p-4 transition-colors ${
-                      !notification.read ? "bg-green-50/50 dark:bg-green-950/10" : ""
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg bg-muted/50 mt-0.5`}>
-                      <Icon className={`w-5 h-5 ${iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        {!notification.read && (
-                          <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-green-500">
-                            Yeni
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true,
-                          locale: tr,
-                        })}
-                      </p>
-                      {notification.type === "REPORT_READY" && (
-                        <Link href="/tedarikci/raporlar">
-                          <Button variant="outline" size="sm" className="mt-2">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Raporu Görüntüle
-                          </Button>
-                        </Link>
+      <div className="rounded-lg border border-border bg-card">
+        {isLoading ? (
+          <div className="space-y-3 p-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-9 w-9 rounded-md" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !data?.notifications.length ? (
+          <EmptyState
+            icon={Bell}
+            title="Bildirim yok"
+            description="Yeni bildirimler geldiğinde burada görünür."
+            className="border-0 bg-transparent"
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {data.notifications.map((notification) => {
+              const Icon = getNotificationIcon(notification.type);
+              return (
+                <li
+                  key={notification.id}
+                  className={cn(
+                    "flex items-start gap-3 p-4",
+                    !notification.read && "bg-primary/[0.03]"
+                  )}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
+                    <Icon
+                      className={cn(
+                        "h-4 w-4",
+                        getNotificationAccent(notification.type)
                       )}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {notification.title}
+                      </p>
+                      {!notification.read ? (
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      ) : null}
                     </div>
-                    {!notification.read && (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {notification.message}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground/70">
+                      {formatDistanceToNow(new Date(notification.createdAt), {
+                        addSuffix: true,
+                        locale: tr,
+                      })}
+                    </p>
+                    {notification.type === "REPORT_READY" && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="shrink-0"
-                        onClick={() => markReadMutation.mutate([notification.id])}
-                        disabled={markReadMutation.isPending}
+                        asChild
+                        className="mt-2"
                       >
-                        <Check className="w-4 h-4" />
+                        <Link href="/tedarikci/raporlar">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Raporu görüntüle
+                        </Link>
                       </Button>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  {!notification.read ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => markReadMutation.mutate([notification.id])}
+                      disabled={markReadMutation.isPending}
+                      aria-label="Okundu olarak işaretle"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -146,7 +146,7 @@ export default function CompanyRegisterPage() {
             <Truck className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white">UZHAN ERP</h1>
-          <p className="text-slate-400 mt-1">Firma Kaydı</p>
+          <p className="text-muted-foreground mt-1">Firma Kaydı</p>
         </div>
 
         {/* Card */}

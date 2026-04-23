@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -42,12 +41,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Factory, CheckCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Factory, CheckCircle, MoreHorizontal, Briefcase } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { canEditFactoryPrice, canViewFactoryPrice } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ExtraWork {
   id: string;
@@ -268,54 +277,8 @@ export default function ExtraWorkPage() {
   };
 
   const totalFiyat = extraWorks?.reduce((sum, item) => sum + item.fiyat, 0) || 0;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        {/* Header skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <Skeleton className="h-10 w-32" />
-        </div>
-        {/* Card skeleton */}
-        <div className="border rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-32" />
-            <div className="text-right space-y-1">
-              <Skeleton className="h-4 w-16 ml-auto" />
-              <Skeleton className="h-6 w-24 ml-auto" />
-            </div>
-          </div>
-          {/* Table skeleton */}
-          <div className="space-y-3">
-            <div className="flex gap-4">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex gap-4">
-                <Skeleton className="h-10 w-20" />
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-28" />
-                <Skeleton className="h-10 w-20" />
-                <Skeleton className="h-10 flex-1" />
-                <Skeleton className="h-10 w-20" />
-                <Skeleton className="h-10 w-16" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const columnCount = 8 + (showFactoryPrice ? 1 : 0);
+  const hasItems = (extraWorks?.length ?? 0) > 0;
 
   return (
     <div>
@@ -326,7 +289,7 @@ export default function ExtraWorkPage() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenDialog}>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="h-4 w-4" />
                 Yeni Ek İş
               </Button>
             </DialogTrigger>
@@ -355,7 +318,7 @@ export default function ExtraWorkPage() {
                     </SelectContent>
                   </Select>
                   {errors.projectId && (
-                    <p className="text-sm text-red-500">{errors.projectId.message}</p>
+                    <p className="text-xs text-destructive">{errors.projectId.message}</p>
                   )}
                 </div>
 
@@ -380,7 +343,7 @@ export default function ExtraWorkPage() {
                     </SelectContent>
                   </Select>
                   {errors.supplierId && (
-                    <p className="text-sm text-red-500">{errors.supplierId.message}</p>
+                    <p className="text-xs text-destructive">{errors.supplierId.message}</p>
                   )}
                 </div>
 
@@ -403,7 +366,7 @@ export default function ExtraWorkPage() {
                     </SelectContent>
                   </Select>
                   {errors.vehicleId && (
-                    <p className="text-sm text-red-500">{errors.vehicleId.message}</p>
+                    <p className="text-xs text-destructive">{errors.vehicleId.message}</p>
                   )}
                 </div>
 
@@ -415,7 +378,7 @@ export default function ExtraWorkPage() {
                     {...register("tarih")}
                   />
                   {errors.tarih && (
-                    <p className="text-sm text-red-500">{errors.tarih.message}</p>
+                    <p className="text-xs text-destructive">{errors.tarih.message}</p>
                   )}
                 </div>
 
@@ -427,7 +390,7 @@ export default function ExtraWorkPage() {
                     placeholder="Örn: Kadıköy - Kartal ek sefer"
                   />
                   {errors.aciklama && (
-                    <p className="text-sm text-red-500">{errors.aciklama.message}</p>
+                    <p className="text-xs text-destructive">{errors.aciklama.message}</p>
                   )}
                 </div>
 
@@ -441,27 +404,30 @@ export default function ExtraWorkPage() {
                     placeholder="0.00"
                   />
                   {errors.fiyat && (
-                    <p className="text-sm text-red-500">{errors.fiyat.message}</p>
+                    <p className="text-xs text-destructive">{errors.fiyat.message}</p>
                   )}
                 </div>
 
                 {/* Fabrika Fiyatı - Sadece Admin görebilir */}
                 {canEditFactory && (
-                  <div className="space-y-2 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Factory className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Fabrika Fiyatı (Gizli)</span>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <Factory className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Fabrika Fiyatı
+                      </span>
+                      <Badge variant="outline" className="ml-auto text-[10px]">
+                        Admin
+                      </Badge>
                     </div>
-                    <Label htmlFor="fabrikaFiyati">Fabrika Fiyatı (₺)</Label>
                     <Input
                       id="fabrikaFiyati"
                       type="number"
                       step="0.01"
                       {...register("fabrikaFiyati")}
                       placeholder="0.00"
-                      className="bg-card"
                     />
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-muted-foreground">
                       Boş bırakılırsa tedarikçi fiyatı kullanılır.
                     </p>
                   </div>
@@ -498,102 +464,123 @@ export default function ExtraWorkPage() {
       />
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="space-y-1">
             <CardTitle>Ek İş Listesi</CardTitle>
-            <div className="text-right">
-              <p className="text-sm text-slate-500">Toplam</p>
-              <p className="text-xl font-bold">{formatCurrency(totalFiyat)}</p>
-            </div>
+            <CardDescription>Tüm ek iş ve mesai kayıtları.</CardDescription>
+          </div>
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Toplam</p>
+            <p className="text-lg font-semibold text-foreground">{formatCurrency(totalFiyat)}</p>
           </div>
         </CardHeader>
-        <CardContent>
-          {extraWorks && extraWorks.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tarih</TableHead>
-                  <TableHead>Proje</TableHead>
-                  <TableHead>Tedarikçi</TableHead>
-                  <TableHead>Plaka</TableHead>
-                  <TableHead>Açıklama</TableHead>
-                  <TableHead className="text-right">Tedarikçi Fiyatı</TableHead>
-                  {showFactoryPrice && (
-                    <TableHead className="text-right">Fabrika Fiyatı</TableHead>
-                  )}
-                  <TableHead>Durum</TableHead>
-                  <TableHead className="w-[120px]">İşlemler</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {extraWorks.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{formatDate(new Date(item.tarih))}</TableCell>
-                    <TableCell>{item.project.ad}</TableCell>
-                    <TableCell>{item.supplier.firmaAdi}</TableCell>
-                    <TableCell>{item.vehicle.plaka}</TableCell>
-                    <TableCell>{item.aciklama}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(item.fiyat)}
-                    </TableCell>
-                    {showFactoryPrice && (
-                      <TableCell className="text-right font-medium text-amber-600">
-                        {item.fabrikaFiyati ? formatCurrency(item.fabrikaFiyati) : "-"}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {(item.status ?? "APPROVED") === "APPROVED" ? (
-                        <span className="inline-flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
-                          <CheckCircle className="w-4 h-4" />
-                          Onaylandı
-                          {item.approvedAt && (
-                            <span className="text-muted-foreground text-xs">
-                              ({formatDate(new Date(item.approvedAt))})
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 dark:text-amber-400 text-sm">Onay Bekliyor</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {(item.status ?? "APPROVED") === "PENDING_APPROVAL" && isAdmin && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => approveMutation.mutate(item.id)}
-                            disabled={approveMutation.isPending}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Onayla
-                          </Button>
-                        )}
-                        {(isAdmin || (item.status ?? "APPROVED") === "PENDING_APPROVAL") && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <CardContent className="p-0">
+          {!isLoading && !hasItems ? (
+            <EmptyState
+              icon={Briefcase}
+              title="Henüz ek iş yok"
+              description="Ek iş / mesai kaydı oluşturduğunuzda burada listelenir."
+              className="m-5"
+            />
           ) : (
-            <div className="text-center py-8 text-slate-500">
-              Henüz ek iş kaydı bulunmuyor
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tarih</TableHead>
+                    <TableHead>Proje</TableHead>
+                    <TableHead>Tedarikçi</TableHead>
+                    <TableHead>Plaka</TableHead>
+                    <TableHead>Açıklama</TableHead>
+                    <TableHead className="text-right">Tedarikçi Fiyatı</TableHead>
+                    {showFactoryPrice && (
+                      <TableHead className="text-right">Fabrika Fiyatı</TableHead>
+                    )}
+                    <TableHead>Durum</TableHead>
+                    <TableHead className="w-[80px] text-right"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableSkeleton columns={columnCount} />
+                  ) : (
+                    extraWorks?.map((item) => {
+                      const status = item.status ?? "APPROVED";
+                      const canEditItem = isAdmin || status === "PENDING_APPROVAL";
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(new Date(item.tarih))}
+                          </TableCell>
+                          <TableCell className="font-medium">{item.project.ad}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.supplier.firmaAdi}
+                          </TableCell>
+                          <TableCell>{item.vehicle.plaka}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.aciklama}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.fiyat)}
+                          </TableCell>
+                          {showFactoryPrice && (
+                            <TableCell className="text-right font-medium">
+                              {item.fabrikaFiyati ? formatCurrency(item.fabrikaFiyati) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            {status === "APPROVED" ? (
+                              <Badge variant="success">
+                                <CheckCircle className="h-3 w-3" /> Onaylandı
+                              </Badge>
+                            ) : (
+                              <Badge variant="warning">Onay Bekliyor</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {status === "PENDING_APPROVAL" && isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => approveMutation.mutate(item.id)}
+                                  disabled={approveMutation.isPending}
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                  Onayla
+                                </Button>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {canEditItem && (
+                                    <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                      <Pencil /> Düzenle
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canEditItem && <DropdownMenuSeparator />}
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteId(item.id)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="text-destructive" /> Sil
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -612,7 +599,7 @@ export default function ExtraWorkPage() {
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? "Siliniyor..." : "Sil"}
             </AlertDialogAction>
@@ -622,3 +609,4 @@ export default function ExtraWorkPage() {
     </div>
   );
 }
+

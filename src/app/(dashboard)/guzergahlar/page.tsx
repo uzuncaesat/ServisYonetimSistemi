@@ -22,11 +22,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Edit, MoreHorizontal, Route as RouteIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 interface Route {
   id: string;
@@ -77,108 +86,135 @@ export default function RoutesPage() {
       setDeleteId(null);
     },
     onError: () => {
-      toast({ title: "Hata", description: "Güzergah silinemedi", variant: "destructive" });
+      toast({
+        title: "Hata",
+        description: "Güzergah silinemedi",
+        variant: "destructive",
+      });
     },
   });
+
+  const hasItems = (routes?.length ?? 0) > 0;
 
   return (
     <div>
       <PageHeader
         title="Güzergahlar"
-        description="Proje güzergahlarını yönetin"
-        actionLabel="Yeni Güzergah"
+        description="Proje güzergahlarını yönetin."
+        actionLabel="Yeni güzergah"
         actionHref="/guzergahlar/yeni"
       />
 
-      <div className="overflow-x-auto min-w-0">
-        <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Güzergah Adı</TableHead>
-              <TableHead>Proje</TableHead>
-              <TableHead>Başlangıç / Bitiş</TableHead>
-              <TableHead>KM</TableHead>
-              <TableHead>Birim Fiyat</TableHead>
-              <TableHead>KDV</TableHead>
-              <TableHead>Araç</TableHead>
-              <TableHead className="w-[100px]">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      {!isLoading && !hasItems ? (
+        <EmptyState
+          icon={RouteIcon}
+          title="Henüz güzergah yok"
+          description="Projelerinize bağlı güzergahları oluşturarak puantaja hazır hale gelin."
+          action={
+            <Button asChild>
+              <Link href="/guzergahlar/yeni">Yeni güzergah</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
-                  Yükleniyor...
-                </TableCell>
+                <TableHead>Güzergah</TableHead>
+                <TableHead>Proje</TableHead>
+                <TableHead>Başlangıç / Bitiş</TableHead>
+                <TableHead>KM</TableHead>
+                <TableHead>Birim fiyat</TableHead>
+                <TableHead>KDV</TableHead>
+                <TableHead>Araç</TableHead>
+                <TableHead className="w-[60px] text-right"></TableHead>
               </TableRow>
-            ) : routes?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  Henüz güzergah eklenmemiş
-                </TableCell>
-              </TableRow>
-            ) : (
-              routes?.map((route) => (
-                <TableRow key={route.id}>
-                  <TableCell className="font-medium">{route.ad}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/projeler/${route.project.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {route.project.ad}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{route.baslangicNoktasi || "-"}</p>
-                      <p className="text-slate-500">{route.bitisNoktasi || "-"}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{route.km || "-"}</TableCell>
-                  <TableCell>{formatCurrency(route.birimFiyat)}</TableCell>
-                  <TableCell>%{route.kdvOrani}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{route._count.vehicleRoutes}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/guzergahlar/${route.id}/duzenle`}>
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(route.id)}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={8} />
+              ) : (
+                routes?.map((route) => (
+                  <TableRow key={route.id}>
+                    <TableCell className="font-medium">{route.ad}</TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/projeler/${route.project.id}`}
+                        className="text-foreground hover:text-primary transition-colors"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        {route.project.ad}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5 text-sm">
+                        <p className="text-foreground">
+                          {route.baslangicNoktasi || "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {route.bitisNoktasi || "—"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {route.km || "—"}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatCurrency(route.birimFiyat)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      %{route.kdvOrani}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">
+                        {route._count.vehicleRoutes}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/guzergahlar/${route.id}/duzenle`}>
+                              <Edit /> Düzenle
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(route.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="text-destructive" /> Sil
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Güzergahı Sil</AlertDialogTitle>
+            <AlertDialogTitle>Güzergahı sil</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu güzergahı silmek istediğinizden emin misiniz? İlişkili puantaj kayıtları etkilenebilir.
+              Bu güzergahı silmek istediğinizden emin misiniz? İlişkili puantaj
+              kayıtları etkilenebilir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Sil
             </AlertDialogAction>

@@ -64,7 +64,7 @@ export default function NewProjectPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Yeni Proje</h1>
-          <p className="text-slate-500">Yeni bir servis projesi oluşturun</p>
+          <p className="text-muted-foreground">Yeni bir servis projesi oluşturun</p>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export default function NewProjectPage() {
               <Label htmlFor="ad">Proje Adı *</Label>
               <Input id="ad" {...register("ad")} placeholder="Fabrika Servisi" />
               {errors.ad && (
-                <p className="text-sm text-red-500">{errors.ad.message}</p>
+                <p className="text-xs text-destructive">{errors.ad.message}</p>
               )}
             </div>
 

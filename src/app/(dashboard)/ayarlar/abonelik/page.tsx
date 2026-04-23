@@ -36,7 +36,7 @@ const plans = [
     price: 0,
     description: "14 gün ücretsiz deneyin",
     icon: Sparkles,
-    color: "border-slate-200 dark:border-slate-700",
+    color: "border-border dark:border-slate-700",
     features: ["5 araç", "3 kullanıcı", "2 proje", "Raporlar", "Bildirimler"],
     notIncluded: ["Tedarikçi portalı", "E-posta bildirimleri"],
   },
