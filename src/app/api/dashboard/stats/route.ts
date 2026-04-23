@@ -27,12 +27,14 @@ export async function GET() {
     start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - 29);
 
-    const recent = await prisma.timesheet.findMany({
+    const recentEntries = await prisma.timesheetEntry.findMany({
       where: {
-        project: orgFilter,
-        date: { gte: start },
+        timesheet: {
+          project: orgFilter,
+        },
+        tarih: { gte: start },
       },
-      select: { date: true, tripCount: true },
+      select: { tarih: true, seferSayisi: true },
     });
 
     const trendMap = new Map<string, number>();
@@ -42,9 +44,9 @@ export async function GET() {
       const key = d.toISOString().slice(0, 10);
       trendMap.set(key, 0);
     }
-    for (const entry of recent) {
-      const key = entry.date.toISOString().slice(0, 10);
-      trendMap.set(key, (trendMap.get(key) ?? 0) + (entry.tripCount ?? 0));
+    for (const entry of recentEntries) {
+      const key = entry.tarih.toISOString().slice(0, 10);
+      trendMap.set(key, (trendMap.get(key) ?? 0) + (entry.seferSayisi ?? 0));
     }
 
     const trend = Array.from(trendMap.entries()).map(([date, value]) => ({
