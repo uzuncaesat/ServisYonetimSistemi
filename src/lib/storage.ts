@@ -1,12 +1,15 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { put, del, head } from "@vercel/blob";
+import { put, del, get } from "@vercel/blob";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const useBlob =
   typeof process.env.BLOB_READ_WRITE_TOKEN === "string" &&
   process.env.BLOB_READ_WRITE_TOKEN.length > 0;
+
+// Private store kullanıyoruz; SDK >= 2.3 zorunlu.
+const BLOB_ACCESS = "private" as const;
 
 // Ensure upload directory exists (only for local storage)
 export function ensureUploadDir(ownerType: string, ownerId: string): string {
@@ -29,11 +32,8 @@ export async function saveFile(
   const relativePath = `${ownerType.toLowerCase()}/${ownerId}/${fileName}`;
 
   if (useBlob) {
-    // `access: "public"` is required by the Vercel Blob API. On a Private
-    // store the returned URL still requires a token (or signed URL) to read,
-    // so the actual access control is enforced by the store's privacy setting.
     const blob = await put(relativePath, file, {
-      access: "public",
+      access: BLOB_ACCESS,
       addRandomSuffix: false,
     });
     return { storagePath: blob.url, fileName };
@@ -46,33 +46,31 @@ export async function saveFile(
   return { storagePath, fileName };
 }
 
-// Get file from storage. Works for both Public and Private Vercel Blob stores
-// by going through `head()` which returns a signed `downloadUrl`.
+// Get file from storage. Private Blob için SDK'nın get() metodu kullanılır;
+// stream'i Buffer'a dönüştürüp geri veriyoruz.
 export async function getFile(storagePath: string): Promise<Buffer | null> {
   if (useBlob) {
     try {
-      // Try authenticated metadata lookup. This works for both Public and
-      // Private blobs and gives us a signed URL we can fetch without leaking
-      // the token to the network.
-      const meta = await head(storagePath);
-      const downloadUrl = meta.downloadUrl ?? meta.url ?? storagePath;
-      const res = await fetch(downloadUrl);
-      if (res.ok) {
-        const ab = await res.arrayBuffer();
-        return Buffer.from(ab);
-      }
-    } catch (err) {
-      console.error("[storage] head() failed, falling back to direct fetch:", err);
-    }
+      const result = await get(storagePath, { access: BLOB_ACCESS });
+      if (!result || !result.stream) return null;
 
-    // Fallback: direct fetch (works for Public stores).
-    try {
-      const res = await fetch(storagePath);
-      if (!res.ok) return null;
-      const ab = await res.arrayBuffer();
-      return Buffer.from(ab);
+      const chunks: Uint8Array[] = [];
+      const reader = result.stream.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
+      const merged = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      return Buffer.from(merged);
     } catch (err) {
-      console.error("[storage] direct fetch failed:", err);
+      console.error("[storage] get() failed:", err);
       return null;
     }
   }
