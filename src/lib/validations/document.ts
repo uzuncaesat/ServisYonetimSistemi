@@ -15,6 +15,8 @@ export const vehicleDocTypes = [
   { value: "RUHSAT", label: "Ruhsat" },
   { value: "SIGORTA", label: "Sigorta" },
   { value: "MUAYENE", label: "Muayene" },
+  { value: "KOLTUK_SIGORTASI", label: "Koltuk Sigortası" },
+  { value: "CALISMA_RUHSATI", label: "Çalışma Ruhsatı" },
   { value: "KASKO", label: "Kasko" },
   { value: "DIGER", label: "Diğer" },
 ];

@@ -73,6 +73,11 @@ export async function POST(req: NextRequest) {
         kisiSayisi: validatedData.kisiSayisi,
         supplierId: validatedData.supplierId,
         driverId: validatedData.driverId || null,
+        ruhsatBitis: validatedData.ruhsatBitis ? new Date(validatedData.ruhsatBitis) : null,
+        sigortaBitis: validatedData.sigortaBitis ? new Date(validatedData.sigortaBitis) : null,
+        muayeneBitis: validatedData.muayeneBitis ? new Date(validatedData.muayeneBitis) : null,
+        koltukSigortasiBitis: validatedData.koltukSigortasiBitis ? new Date(validatedData.koltukSigortasiBitis) : null,
+        calismaRuhsatiBitis: validatedData.calismaRuhsatiBitis ? new Date(validatedData.calismaRuhsatiBitis) : null,
         organizationId: getOrgId(session!),
       },
       include: {

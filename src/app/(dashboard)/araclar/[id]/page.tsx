@@ -14,9 +14,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Edit, Car, User, Building2, FolderKanban, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit,
+  Car,
+  User,
+  Building2,
+  FolderKanban,
+  FileText,
+  AlertCircle,
+  ShieldCheck,
+  CalendarClock,
+} from "lucide-react";
 import Link from "next/link";
 import { DocumentList } from "@/components/documents/document-list";
+import { formatDate } from "@/lib/utils";
 
 interface VehicleDetail {
   id: string;
@@ -24,6 +36,11 @@ interface VehicleDetail {
   marka: string | null;
   model: string | null;
   kisiSayisi: number | null;
+  ruhsatBitis: string | null;
+  sigortaBitis: string | null;
+  muayeneBitis: string | null;
+  koltukSigortasiBitis: string | null;
+  calismaRuhsatiBitis: string | null;
   supplier: {
     id: string;
     firmaAdi: string;
@@ -92,6 +109,43 @@ export default function VehicleDetailPage() {
   const monthNames = [
     "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
     "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+  ];
+
+  const getExpiryStatus = (date: string | null) => {
+    if (!date) return { label: "Belirtilmemiş", variant: "outline" as const, icon: null };
+    const expiryDate = new Date(date);
+    const today = new Date();
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysUntilExpiry < 0) {
+      return {
+        label: "Süresi Dolmuş",
+        variant: "destructive" as const,
+        icon: <AlertCircle className="h-3 w-3" />,
+      };
+    }
+    if (daysUntilExpiry <= 30) {
+      return {
+        label: `${daysUntilExpiry} gün kaldı`,
+        variant: "warning" as const,
+        icon: <AlertCircle className="h-3 w-3" />,
+      };
+    }
+    return {
+      label: "Geçerli",
+      variant: "success" as const,
+      icon: <ShieldCheck className="h-3 w-3" />,
+    };
+  };
+
+  const evraklar: Array<{ ad: string; tarih: string | null }> = [
+    { ad: "Ruhsat", tarih: vehicle.ruhsatBitis },
+    { ad: "Sigorta", tarih: vehicle.sigortaBitis },
+    { ad: "Muayene", tarih: vehicle.muayeneBitis },
+    { ad: "Koltuk Sigortası", tarih: vehicle.koltukSigortasiBitis },
+    { ad: "Çalışma Ruhsatı", tarih: vehicle.calismaRuhsatiBitis },
   ];
 
   return (
@@ -224,6 +278,40 @@ export default function VehicleDetailPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Evrak Bitiş Tarihleri */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="w-5 h-5" />
+                Evrak Bitiş Tarihleri
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {evraklar.map((e) => {
+                  const status = getExpiryStatus(e.tarih);
+                  return (
+                    <div
+                      key={e.ad}
+                      className="flex flex-col gap-2 rounded-lg border p-4"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">{e.ad}</p>
+                        <Badge variant={status.variant}>
+                          {status.icon}
+                          {status.label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {e.tarih ? formatDate(e.tarih) : "-"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Son Puantajlar */}
           {vehicle.timesheets.length > 0 && (

@@ -17,9 +17,19 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+
+function toDateInputValue(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 async function fetchVehicle(id: string) {
   const res = await fetch(`/api/vehicles/${id}`);
@@ -100,6 +110,11 @@ export default function EditVehiclePage() {
         kisiSayisi: vehicle.kisiSayisi || undefined,
         supplierId: vehicle.supplier.id,
         driverId: vehicle.driver?.id || null,
+        ruhsatBitis: toDateInputValue(vehicle.ruhsatBitis),
+        sigortaBitis: toDateInputValue(vehicle.sigortaBitis),
+        muayeneBitis: toDateInputValue(vehicle.muayeneBitis),
+        koltukSigortasiBitis: toDateInputValue(vehicle.koltukSigortasiBitis),
+        calismaRuhsatiBitis: toDateInputValue(vehicle.calismaRuhsatiBitis),
       });
     }
   }, [vehicle, reset]);
@@ -219,6 +234,47 @@ export default function EditVehiclePage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4" />
+                <h3 className="font-semibold">Evrak / Belge Bitiş Tarihleri</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Tarihler isteğe bağlıdır. Süresi yaklaşan evraklar listede uyarı olarak görünür.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ruhsatBitis">Ruhsat Bitiş</Label>
+                  <Input id="ruhsatBitis" type="date" {...register("ruhsatBitis")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sigortaBitis">Sigorta Bitiş</Label>
+                  <Input id="sigortaBitis" type="date" {...register("sigortaBitis")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="muayeneBitis">Muayene Bitiş</Label>
+                  <Input id="muayeneBitis" type="date" {...register("muayeneBitis")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="koltukSigortasiBitis">Koltuk Sigortası Bitiş</Label>
+                  <Input
+                    id="koltukSigortasiBitis"
+                    type="date"
+                    {...register("koltukSigortasiBitis")}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="calismaRuhsatiBitis">Çalışma Ruhsatı Bitiş</Label>
+                  <Input
+                    id="calismaRuhsatiBitis"
+                    type="date"
+                    {...register("calismaRuhsatiBitis")}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-4 pt-4">
