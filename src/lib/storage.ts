@@ -1,10 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { put, del } from "@vercel/blob";
+import { put, del, head } from "@vercel/blob";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
-const useBlob = typeof process.env.BLOB_READ_WRITE_TOKEN === "string" && process.env.BLOB_READ_WRITE_TOKEN.length > 0;
+const useBlob =
+  typeof process.env.BLOB_READ_WRITE_TOKEN === "string" &&
+  process.env.BLOB_READ_WRITE_TOKEN.length > 0;
 
 // Ensure upload directory exists (only for local storage)
 export function ensureUploadDir(ownerType: string, ownerId: string): string {
@@ -27,6 +29,9 @@ export async function saveFile(
   const relativePath = `${ownerType.toLowerCase()}/${ownerId}/${fileName}`;
 
   if (useBlob) {
+    // `access: "public"` is required by the Vercel Blob API. On a Private
+    // store the returned URL still requires a token (or signed URL) to read,
+    // so the actual access control is enforced by the store's privacy setting.
     const blob = await put(relativePath, file, {
       access: "public",
       addRandomSuffix: false,
@@ -41,15 +46,33 @@ export async function saveFile(
   return { storagePath, fileName };
 }
 
-// Get file from storage
+// Get file from storage. Works for both Public and Private Vercel Blob stores
+// by going through `head()` which returns a signed `downloadUrl`.
 export async function getFile(storagePath: string): Promise<Buffer | null> {
   if (useBlob) {
+    try {
+      // Try authenticated metadata lookup. This works for both Public and
+      // Private blobs and gives us a signed URL we can fetch without leaking
+      // the token to the network.
+      const meta = await head(storagePath);
+      const downloadUrl = meta.downloadUrl ?? meta.url ?? storagePath;
+      const res = await fetch(downloadUrl);
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        return Buffer.from(ab);
+      }
+    } catch (err) {
+      console.error("[storage] head() failed, falling back to direct fetch:", err);
+    }
+
+    // Fallback: direct fetch (works for Public stores).
     try {
       const res = await fetch(storagePath);
       if (!res.ok) return null;
       const ab = await res.arrayBuffer();
       return Buffer.from(ab);
-    } catch {
+    } catch (err) {
+      console.error("[storage] direct fetch failed:", err);
       return null;
     }
   }
@@ -68,7 +91,8 @@ export async function deleteFile(storagePath: string): Promise<boolean> {
     try {
       await del(storagePath);
       return true;
-    } catch {
+    } catch (err) {
+      console.error("[storage] del() failed:", err);
       return false;
     }
   }
