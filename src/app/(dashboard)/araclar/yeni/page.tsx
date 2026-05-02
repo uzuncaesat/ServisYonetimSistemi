@@ -146,26 +146,50 @@ export default function NewVehiclePage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Tedarikçi *</Label>
+              <Label>Sahiplik *</Label>
               <Select
-                value={watch("supplierId")}
-                onValueChange={(value) => setValue("supplierId", value)}
+                value={watch("ownership") || "RENTED"}
+                onValueChange={(value) =>
+                  setValue("ownership", value as "RENTED" | "OWNED")
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Tedarikçi seçin" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers?.map((supplier: { id: string; firmaAdi: string }) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.firmaAdi}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="RENTED">Kiralık (Tedarikçiden)</SelectItem>
+                  <SelectItem value="OWNED">Özmal (Şirketin kendi aracı)</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.supplierId && (
-                <p className="text-xs text-destructive">{errors.supplierId.message}</p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Özmal araçlar için tedarikçi seçimi gerekmez; gelir/gider takibi
+                Yakıt ve Giderler modüllerinden yapılır.
+              </p>
             </div>
+
+            {watch("ownership") !== "OWNED" && (
+              <div className="space-y-2">
+                <Label>Tedarikçi *</Label>
+                <Select
+                  value={watch("supplierId") || ""}
+                  onValueChange={(value) => setValue("supplierId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tedarikçi seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers?.map((supplier: { id: string; firmaAdi: string }) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.firmaAdi}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.supplierId && (
+                  <p className="text-xs text-destructive">{errors.supplierId.message}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Şoför (Opsiyonel)</Label>

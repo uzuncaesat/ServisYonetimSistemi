@@ -36,6 +36,7 @@ interface VehicleDetail {
   marka: string | null;
   model: string | null;
   kisiSayisi: number | null;
+  ownership: "RENTED" | "OWNED";
   ruhsatBitis: string | null;
   sigortaBitis: string | null;
   muayeneBitis: string | null;
@@ -45,7 +46,7 @@ interface VehicleDetail {
     id: string;
     firmaAdi: string;
     telefon: string | null;
-  };
+  } | null;
   driver: {
     id: string;
     adSoyad: string;
@@ -220,28 +221,44 @@ export default function VehicleDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Tedarikçi */}
+            {/* Tedarikçi / Sahiplik */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5" />
-                  Tedarikçi
+                  {vehicle.ownership === "OWNED" ? "Sahiplik" : "Tedarikçi"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Firma Adı</p>
-                  <Link
-                    href={`/tedarikciler/${vehicle.supplier.id}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {vehicle.supplier.firmaAdi}
-                  </Link>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Telefon</p>
-                  <p className="font-medium">{vehicle.supplier.telefon || "-"}</p>
-                </div>
+                {vehicle.ownership === "OWNED" ? (
+                  <div>
+                    <Badge variant="primary">Özmal Araç</Badge>
+                    <p className="text-sm text-muted-foreground mt-3">
+                      Bu araç şirketinizin özmal aracıdır. Yakıt ve gider takibi
+                      ilgili modüllerden yapılır.
+                    </p>
+                  </div>
+                ) : vehicle.supplier ? (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Firma Adı</p>
+                      <Link
+                        href={`/tedarikciler/${vehicle.supplier.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {vehicle.supplier.firmaAdi}
+                      </Link>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Telefon</p>
+                      <p className="font-medium">
+                        {vehicle.supplier.telefon || "-"}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">Tedarikçi bilgisi yok</p>
+                )}
               </CardContent>
             </Card>
 

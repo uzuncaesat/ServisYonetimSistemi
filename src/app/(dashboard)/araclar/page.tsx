@@ -43,10 +43,11 @@ interface Vehicle {
   marka: string | null;
   model: string | null;
   kisiSayisi: number | null;
+  ownership: "RENTED" | "OWNED";
   supplier: {
     id: string;
     firmaAdi: string;
-  };
+  } | null;
   driver: {
     id: string;
     adSoyad: string;
@@ -153,12 +154,18 @@ export default function VehiclesPage() {
                       {vehicle.kisiSayisi || "—"}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Link
-                        href={`/tedarikciler/${vehicle.supplier.id}`}
-                        className="text-foreground hover:text-primary transition-colors"
-                      >
-                        {vehicle.supplier.firmaAdi}
-                      </Link>
+                      {vehicle.ownership === "OWNED" ? (
+                        <Badge variant="primary">Özmal</Badge>
+                      ) : vehicle.supplier ? (
+                        <Link
+                          href={`/tedarikciler/${vehicle.supplier.id}`}
+                          className="text-foreground hover:text-primary transition-colors"
+                        >
+                          {vehicle.supplier.firmaAdi}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {vehicle.driver ? (

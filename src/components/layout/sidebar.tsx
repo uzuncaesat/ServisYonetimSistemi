@@ -21,6 +21,9 @@ import {
   Monitor,
   Sun,
   Moon,
+  Fuel,
+  Wrench,
+  MessageSquare,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -46,6 +49,9 @@ const menuItems = [
   { href: "/soforler", label: "Şoförler", icon: Users },
   { href: "/puantaj", label: "Puantaj", icon: ClipboardList },
   { href: "/ek-is", label: "Ek İş/Mesai", icon: Briefcase },
+  { href: "/yakit", label: "Yakıt", icon: Fuel },
+  { href: "/giderler", label: "Giderler", icon: Wrench },
+  { href: "/sms", label: "SMS", icon: MessageSquare },
   { href: "/raporlar", label: "Raporlar", icon: FileText },
   { href: "/bildirimler", label: "Bildirimler", icon: Bell },
   {

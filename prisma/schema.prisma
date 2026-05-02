@@ -26,6 +26,9 @@ model Organization {
   vehicles     Vehicle[]
   projects     Project[]
   settings     Setting[]
+  expenses     VehicleExpense[]
+  fuelEntries  FuelEntry[]
+  smsLogs      SmsLog[]
 }
 
 // Sistem ayarları (organizasyon bazlı)
@@ -124,6 +127,8 @@ model Vehicle {
   marka       String?
   model       String?
   kisiSayisi  Int?
+  // Sahiplik tipi: "RENTED" (kiralık - tedarikçiden) | "OWNED" (özmal - şirketin kendi aracı)
+  ownership   String    @default("RENTED")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -137,8 +142,9 @@ model Vehicle {
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  supplierId  String
-  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  // Özmal araçlarda supplierId boş olabilir
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
   
   driverId    String?   @unique
   driver      Driver?   @relation(fields: [driverId], references: [id])
@@ -147,6 +153,73 @@ model Vehicle {
   timesheets  Timesheet[]
   documents   Document[]
   extraWorks  ExtraWork[]
+  expenses    VehicleExpense[]
+  fuelEntries FuelEntry[]
+}
+
+// Araç giderleri (özmal araçlar için: bakım, sigorta, vergi, ceza vb.)
+model VehicleExpense {
+  id          String   @id @default(cuid())
+  tarih       DateTime
+  kategori    String   // BAKIM, SIGORTA, KASKO, VERGI, CEZA, LASTIK, HASAR, MUAYENE, DIGER
+  altKategori String?  // örn. BAKIM altında "fren balata", "yağ değişimi"
+  tutar       Float
+  kdvDahil    Boolean  @default(true)
+  km          Int?     // İşlem sırasındaki km
+  saglayici   String?  // Servis firması, anlaşmalı sigorta acentesi vb.
+  belgeNo     String?  // Fatura no, makbuz no
+  garantiBitis DateTime?
+  notlar      String?
+  fisUrl      String?  // Yüklenmiş fiş/fatura PDF URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+// Yakıt kayıtları (özmal araçlar için yakıt takibi)
+model FuelEntry {
+  id          String   @id @default(cuid())
+  tarih       DateTime
+  yakitTipi   String   // BENZIN, MOTORIN, LPG, ELEKTRIK
+  litre       Float
+  birimFiyat  Float    // TL/litre veya TL/kWh
+  toplamTutar Float
+  km          Int      // Doluş anındaki km
+  istasyon    String?  // OPET, Shell, BP vb.
+  fisNo       String?
+  fisUrl      String?
+  notlar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+// SMS gönderim kayıtları
+model SmsLog {
+  id          String   @id @default(cuid())
+  alici       String   // Telefon numarası (905xxxxxxxxx formatı)
+  aliciAdi    String?  // Kişi/firma adı (varsa)
+  mesaj       String
+  durum       String   @default("PENDING") // PENDING, SENT, FAILED
+  saglayici   String?  // NETGSM, ILETIMERKEZI, CONSOLE
+  saglayiciId String?  // Provider'ın döndürdüğü mesaj ID'si
+  hata        String?  // Hata mesajı (FAILED ise)
+  tetikleyici String?  // MANUAL, DOC_EXPIRY, EXTRA_WORK_APPROVED, TIMESHEET_APPROVED
+  gonderenId  String?  // Gönderen kullanıcı id
+  createdAt   DateTime @default(now())
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 // Proje

@@ -5,3 +5,6 @@ export * from "./project";
 export * from "./route";
 export * from "./document";
 export * from "./timesheet";
+export * from "./sms";
+export * from "./fuel";
+export * from "./vehicle-expense";

@@ -71,7 +71,11 @@ export async function POST(req: NextRequest) {
         marka: validatedData.marka,
         model: validatedData.model,
         kisiSayisi: validatedData.kisiSayisi,
-        supplierId: validatedData.supplierId,
+        ownership: validatedData.ownership,
+        supplierId:
+          validatedData.ownership === "OWNED"
+            ? null
+            : validatedData.supplierId || null,
         driverId: validatedData.driverId || null,
         ruhsatBitis: validatedData.ruhsatBitis ? new Date(validatedData.ruhsatBitis) : null,
         sigortaBitis: validatedData.sigortaBitis ? new Date(validatedData.sigortaBitis) : null,
