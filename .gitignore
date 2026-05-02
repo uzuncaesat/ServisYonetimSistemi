@@ -42,3 +42,9 @@ next-env.d.ts
 # prisma
 /prisma/*.db
 /prisma/*.db-journal
+
+# internal docs (sunum, fiyatlandırma, KVKK rehberleri vs.)
+/SUNUM.md
+/SUNUM_NASIL_ILETIRIM.md
+/SIRKET_VE_KVKK_REHBERI.md
+/CANLI_MALIYET_VE_SATIS_FIYATI.md
