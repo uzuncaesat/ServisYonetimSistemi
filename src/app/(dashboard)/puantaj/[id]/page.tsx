@@ -10,6 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -22,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Layers } from "lucide-react";
+import { ArrowLeft, Layers, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, getDaysInMonth, calculateTimesheetTotals } from "@/lib/utils";
@@ -88,6 +98,12 @@ async function saveEntries(
   return res.json();
 }
 
+async function deleteTimesheet(timesheetId: string) {
+  const res = await fetch(`/api/timesheets/${timesheetId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Puantaj silinemedi");
+  return res.json();
+}
+
 const monthNames = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
@@ -108,6 +124,7 @@ export default function TimesheetDetailPage() {
   const [bulkEndDay, setBulkEndDay] = useState<number>(31);
   const [bulkSeferSayisi, setBulkSeferSayisi] = useState<number>(0);
   const [bulkIncludeWeekends, setBulkIncludeWeekends] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: timesheet, isLoading } = useQuery({
     queryKey: ["timesheet", id],
@@ -144,6 +161,26 @@ export default function TimesheetDetailPage() {
     },
     onError: () => {
       toast({ title: "Hata", description: "Kaydedilemedi", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteTimesheet(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicle"] });
+      queryClient.removeQueries({ queryKey: ["timesheet", id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      setDeleteDialogOpen(false);
+      toast({ title: "Puantaj silindi" });
+      router.push("/puantaj");
+    },
+    onError: () => {
+      toast({
+        title: "Hata",
+        description: "Puantaj silinemedi",
+        variant: "destructive",
+      });
     },
   });
 
@@ -269,13 +306,25 @@ export default function TimesheetDetailPage() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges || saveMutation.isPending}
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {saveMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setDeleteDialogOpen(true)}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Sil
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || saveMutation.isPending}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {saveMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+          </Button>
+        </div>
       </div>
 
       {/* Info Cards */}
@@ -483,6 +532,28 @@ export default function TimesheetDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Puantajı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu puantaj ve içindeki tüm günlük sefer kayıtları kalıcı olarak silinir.
+              Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Siliniyor…" : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Summary */}
       <Card>

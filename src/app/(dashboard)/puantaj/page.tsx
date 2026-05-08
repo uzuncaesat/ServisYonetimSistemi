@@ -26,7 +26,24 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowRight, ClipboardList } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ClipboardList, MoreHorizontal, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 
@@ -92,6 +109,12 @@ async function createTimesheet(data: {
   return res.json();
 }
 
+async function deleteTimesheet(id: string) {
+  const res = await fetch(`/api/timesheets/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Puantaj silinemedi");
+  return res.json();
+}
+
 const monthNames = [
   "Ocak",
   "Şubat",
@@ -119,6 +142,7 @@ export default function TimesheetPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -147,6 +171,24 @@ export default function TimesheetPage() {
       toast({
         title: "Hata",
         description: "Puantaj oluşturulamadı",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTimesheet,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicle"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast({ title: "Puantaj silindi" });
+      setDeleteId(null);
+    },
+    onError: () => {
+      toast({
+        title: "Hata",
+        description: "Puantaj silinemedi",
         variant: "destructive",
       });
     },
@@ -318,7 +360,7 @@ export default function TimesheetPage() {
                   <TableHead>Tedarikçi</TableHead>
                   <TableHead>Sefer</TableHead>
                   <TableHead>Tutar</TableHead>
-                  <TableHead className="w-[60px] text-right"></TableHead>
+                  <TableHead className="w-[52px] text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -362,8 +404,34 @@ export default function TimesheetPage() {
                         <TableCell className="tabular-nums font-medium">
                           {formatCurrency(totalAmount)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <ArrowRight className="h-4 w-4 text-muted-foreground inline-block" />
+                        <TableCell
+                          className="text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="İşlemler"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/puantaj/${ts.id}`}>Detay</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteId(ts.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="text-destructive" /> Sil
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -374,6 +442,28 @@ export default function TimesheetPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Puantajı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu puantaj ve içindeki tüm günlük sefer kayıtları kalıcı olarak silinir.
+              Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Siliniyor…" : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
