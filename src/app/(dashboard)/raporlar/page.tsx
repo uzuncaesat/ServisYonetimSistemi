@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Download, Factory, Building2, Eye } from "lucide-react";
+import { FileText, Download, Factory, Building2, Eye, Truck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
 import { canGenerateFactoryReport } from "@/lib/auth";
@@ -65,7 +65,19 @@ const monthNames = [
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
 
-type ReportType = "supplier" | "factory";
+type ReportType = "supplier" | "factory" | "vehicle";
+
+interface VehicleOption {
+  id: string;
+  plaka: string;
+}
+
+async function fetchVehiclesForReport(): Promise<VehicleOption[]> {
+  const res = await fetch("/api/vehicles");
+  if (!res.ok) throw new Error("Araçlar yüklenemedi");
+  const data = (await res.json()) as VehicleOption[];
+  return data;
+}
 
 export default function ReportsPage() {
   const { toast } = useToast();
@@ -73,6 +85,7 @@ export default function ReportsPage() {
   const canGenerateFactory = canGenerateFactoryReport(session?.user?.role);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedVehicleReportId, setSelectedVehicleReportId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [reportType, setReportType] = useState<ReportType>("supplier");
@@ -81,9 +94,11 @@ export default function ReportsPage() {
   const [previewData, setPreviewData] = useState<{
     reportNo: string;
     reportTitle: string;
+    reportKind?: "supplier" | "factory" | "vehicle";
     period: string;
     supplier: { firmaAdi: string; vergiNo: string | null; vergiDairesi: string | null };
     isProjectReport?: boolean;
+    filteredVehiclePlaka?: string | null;
     summaryRows: Array<{ plaka: string; proje: string; guzergah: string; km: string; sefer: string; birimFiyat: string; toplam: string; kdv: string }>;
     extraWorkRows: Array<{ tarih: string; proje: string; plaka: string; aciklama: string; tutar: string }>;
     puantajTotal: number;
@@ -97,12 +112,18 @@ export default function ReportsPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
-    if (!canGenerateFactory && reportType === "factory") {
+    if (!canGenerateFactory && (reportType === "factory" || reportType === "vehicle")) {
       setReportType("supplier");
       setSelectedProjectId("");
+      setSelectedVehicleReportId("");
     }
   }, [canGenerateFactory, reportType]);
 
+  useEffect(() => {
+    setSelectedSupplierId("");
+    setSelectedProjectId("");
+    setSelectedVehicleReportId("");
+  }, [reportType]);
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers"],
     queryFn: fetchSuppliers,
@@ -111,6 +132,12 @@ export default function ReportsPage() {
   const { data: projects } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
+  });
+
+  const { data: vehiclesForReport } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: fetchVehiclesForReport,
+    enabled: reportType === "vehicle",
   });
 
   const handlePreview = async () => {
@@ -128,6 +155,16 @@ export default function ReportsPage() {
         return;
       }
     }
+    if (reportType === "vehicle") {
+      if (!canGenerateFactory) {
+        toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
+        return;
+      }
+      if (!selectedVehicleReportId) {
+        toast({ title: "Hata", description: "Lütfen bir araç (plaka) seçin", variant: "destructive" });
+        return;
+      }
+    }
     setPreviewLoading(true);
     setPreviewOpen(true);
     try {
@@ -137,8 +174,13 @@ export default function ReportsPage() {
         reportType,
         preview: "1",
       });
-      if (reportType === "factory") params.set("projectId", selectedProjectId);
-      else params.set("supplierId", selectedSupplierId);
+      if (reportType === "factory") {
+        params.set("projectId", selectedProjectId);
+      } else if (reportType === "vehicle") {
+        params.set("vehicleId", selectedVehicleReportId);
+      } else {
+        params.set("supplierId", selectedSupplierId);
+      }
       const res = await fetch(`/api/reports/supplier?${params}`);
       if (!res.ok) throw new Error("Önizleme alınamadı");
       const data = await res.json();
@@ -166,6 +208,16 @@ export default function ReportsPage() {
         return;
       }
     }
+    if (reportType === "vehicle") {
+      if (!canGenerateFactory) {
+        toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
+        return;
+      }
+      if (!selectedVehicleReportId) {
+        toast({ title: "Hata", description: "Lütfen bir araç (plaka) seçin", variant: "destructive" });
+        return;
+      }
+    }
 
     setIsGenerating(true);
     try {
@@ -174,8 +226,13 @@ export default function ReportsPage() {
         ay: selectedMonth.toString(),
         reportType,
       });
-      if (reportType === "factory") params.set("projectId", selectedProjectId);
-      else params.set("supplierId", selectedSupplierId);
+      if (reportType === "factory") {
+        params.set("projectId", selectedProjectId);
+      } else if (reportType === "vehicle") {
+        params.set("vehicleId", selectedVehicleReportId);
+      } else {
+        params.set("supplierId", selectedSupplierId);
+      }
       const response = await fetch(`/api/reports/supplier?${params}`);
 
       if (!response.ok) {
@@ -186,8 +243,23 @@ export default function ReportsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const prefix = reportType === "factory" ? "fabrika-raporu" : "tedarikci-raporu";
-      const suffix = reportType === "factory" ? (projects?.find((p) => p.id === selectedProjectId)?.ad ?? selectedProjectId) : (suppliers?.find((s) => s.id === selectedSupplierId)?.firmaAdi ?? "");
+      const prefix =
+        reportType === "factory"
+          ? "fabrika-raporu"
+          : reportType === "vehicle"
+            ? "arac-raporu"
+            : "tedarikci-raporu";
+      const projectAd = projects?.find((p) => p.id === selectedProjectId)?.ad ?? selectedProjectId;
+      const vehiclePlakaSel =
+        reportType === "vehicle"
+          ? vehiclesForReport?.find((v) => v.id === selectedVehicleReportId)?.plaka
+          : "";
+      const suffix =
+        reportType === "factory"
+          ? projectAd
+          : reportType === "vehicle"
+            ? vehiclePlakaSel ?? ""
+            : (suppliers?.find((s) => s.id === selectedSupplierId)?.firmaAdi ?? "");
       a.download = `${prefix}-${suffix}-${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`.replace(/[^a-zA-Z0-9.-]/g, "_");
       document.body.appendChild(a);
       a.click();
@@ -220,6 +292,13 @@ export default function ReportsPage() {
     }
   };
 
+  const reportSelectionReady =
+    reportType === "supplier"
+      ? !!selectedSupplierId
+      : reportType === "factory"
+        ? !!selectedProjectId
+        : !!selectedVehicleReportId;
+
   return (
     <div>
       <PageHeader
@@ -236,7 +315,7 @@ export default function ReportsPage() {
               Hakediş Raporu Oluştur
             </CardTitle>
             <CardDescription>
-              Seçilen tedarikçi veya proje için aylık hakediş raporu oluşturun.
+              Tedarikçi, fabrika (proje) veya seçilen tek araca göre rapor oluşturun.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -244,78 +323,112 @@ export default function ReportsPage() {
               {/* Report Type Selection */}
               <div className="space-y-2">
                 <Label>Rapor Tipi</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <Button
                     type="button"
                     variant={reportType === "supplier" ? "default" : "outline"}
-                    onClick={() => {
-                      setReportType("supplier");
-                      setSelectedProjectId("");
-                    }}
+                    onClick={() => setReportType("supplier")}
                     className="justify-start"
                   >
-                    <Building2 className="h-4 w-4" />
+                    <Building2 className="h-4 w-4 shrink-0" />
                     Tedarikçi
                   </Button>
                   {canGenerateFactory && (
-                    <Button
-                      type="button"
-                      variant={reportType === "factory" ? "default" : "outline"}
-                      onClick={() => {
-                        setReportType("factory");
-                        setSelectedSupplierId("");
-                      }}
-                      className="justify-start"
-                    >
-                      <Factory className="h-4 w-4" />
-                      Fabrika
-                      <Badge variant="outline" className="ml-auto text-[10px]">
-                        Admin
-                      </Badge>
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant={reportType === "factory" ? "default" : "outline"}
+                        onClick={() => setReportType("factory")}
+                        className="justify-start"
+                      >
+                        <Factory className="h-4 w-4 shrink-0" />
+                        Fabrika
+                        <Badge variant="outline" className="ml-auto text-[10px]">
+                          Admin
+                        </Badge>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={reportType === "vehicle" ? "default" : "outline"}
+                        onClick={() => setReportType("vehicle")}
+                        className="justify-start"
+                      >
+                        <Truck className="h-4 w-4 shrink-0" />
+                        Araç
+                        <Badge variant="outline" className="ml-auto text-[10px]">
+                          Admin
+                        </Badge>
+                      </Button>
+                    </>
                   )}
                 </div>
                 {reportType === "factory" && (
                   <p className="text-xs text-muted-foreground">
-                    Fabrika raporu projeye göre fabrika fiyatları üzerinden hesaplanır.
+                    Fabrika: Projedeki tüm araçlar, fabrika fiyatlarıyla.
+                  </p>
+                )}
+                {reportType === "vehicle" && (
+                  <p className="text-xs text-muted-foreground">
+                    Araç: Sadece seçtiğiniz plaka; puantaj ve ek işler tedarikçi birim fiyatlarıyla özetlenir.
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label>{reportType === "factory" ? "Proje" : "Tedarikçi"}</Label>
-                {reportType === "factory" ? (
-                  <Select
-                    value={selectedProjectId}
-                    onValueChange={setSelectedProjectId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Proje seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects?.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {reportType === "supplier" ? (
+                  <>
+                    <Label>Tedarikçi</Label>
+                    <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tedarikçi seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers?.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.firmaAdi}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : reportType === "factory" ? (
+                  <>
+                    <Label>Proje</Label>
+                    <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Proje seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects?.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.ad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
                 ) : (
-                  <Select
-                    value={selectedSupplierId}
-                    onValueChange={setSelectedSupplierId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tedarikçi seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers?.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.firmaAdi}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Label className="flex items-center gap-1.5">
+                      <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                      Araç (plaka)
+                    </Label>
+                    <Select
+                      value={selectedVehicleReportId}
+                      onValueChange={setSelectedVehicleReportId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Plaka seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehiclesForReport?.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.plaka}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
                 )}
               </div>
 
@@ -363,7 +476,7 @@ export default function ReportsPage() {
                 <Button
                   variant="outline"
                   onClick={handlePreview}
-                  disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || previewLoading}
+                  disabled={!reportSelectionReady || previewLoading}
                   className="flex-1"
                 >
                   <Eye className="h-4 w-4" />
@@ -371,7 +484,7 @@ export default function ReportsPage() {
                 </Button>
                 <Button
                   onClick={handleGenerateReport}
-                  disabled={(reportType === "supplier" ? !selectedSupplierId : !selectedProjectId) || isGenerating}
+                  disabled={!reportSelectionReady || isGenerating}
                   className="flex-1"
                 >
                   <Download className="h-4 w-4" />
@@ -435,14 +548,23 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {previewData.isProjectReport ? "Proje" : "Tedarikçi"}
+                    {previewData.reportKind === "vehicle"
+                      ? "Plaka"
+                      : previewData.reportKind === "factory" ||
+                          (!previewData.reportKind && previewData.isProjectReport)
+                        ? "Proje"
+                        : "Tedarikçi"}
                   </p>
                   <p className="mt-1 font-medium text-foreground">{previewData.supplier.firmaAdi}</p>
-                  {!previewData.isProjectReport && (previewData.supplier.vergiNo || previewData.supplier.vergiDairesi) && (
-                    <p className="text-xs text-muted-foreground">
-                      V.No: {previewData.supplier.vergiNo || "-"} · {previewData.supplier.vergiDairesi || "-"}
-                    </p>
-                  )}
+                  {(previewData.reportKind === "supplier" ||
+                    previewData.reportKind === "vehicle" ||
+                    (!previewData.reportKind && !previewData.isProjectReport)) &&
+                    (previewData.supplier.vergiNo || previewData.supplier.vergiDairesi) && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        V.No: {previewData.supplier.vergiNo || "-"} ·{" "}
+                        {previewData.supplier.vergiDairesi || "-"}
+                      </p>
+                    )}
                 </div>
               </div>
 

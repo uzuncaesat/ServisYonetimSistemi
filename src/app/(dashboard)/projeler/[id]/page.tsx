@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -143,15 +144,25 @@ async function removeRouteFromVehicle(routeId: string, projectVehicleId: string)
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
 
-async function getOrCreateTimesheet(projectId: string, vehicleId: string) {
+const monthNames = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
+
+async function getOrCreateTimesheet(
+  projectId: string,
+  vehicleId: string,
+  yil: number,
+  ay: number,
+) {
   const res = await fetch("/api/timesheets", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       projectId,
       vehicleId,
-      yil: currentYear,
-      ay: currentMonth,
+      yil,
+      ay,
     }),
   });
   if (!res.ok) throw new Error("Puantaj açılamadı");
@@ -160,6 +171,7 @@ async function getOrCreateTimesheet(projectId: string, vehicleId: string) {
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -172,7 +184,10 @@ export default function ProjectDetailPage() {
     plaka: string;
     assignedRouteIds: string[];
   } | null>(null);
-  const [puantajLoadingVehicleId, setPuantajLoadingVehicleId] = useState<string | null>(null);
+  const [puantajPick, setPuantajPick] = useState<{ vehicleId: string; plaka: string } | null>(null);
+  const [puantajPickYil, setPuantajPickYil] = useState(currentYear);
+  const [puantajPickAy, setPuantajPickAy] = useState(currentMonth);
+  const [puantajSubmitting, setPuantajSubmitting] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
@@ -249,18 +264,32 @@ export default function ProjectDetailPage() {
     },
   });
 
-  const handlePuantajGir = async (vehicleId: string) => {
-    setPuantajLoadingVehicleId(vehicleId);
+  const openPuantajPickDialog = (vehicleId: string, plaka: string) => {
+    setPuantajPickYil(currentYear);
+    setPuantajPickAy(currentMonth);
+    setPuantajPick({ vehicleId, plaka });
+  };
+
+  const handlePuantajConfirm = async () => {
+    if (!puantajPick) return;
+    setPuantajSubmitting(true);
     try {
-      const timesheet = await getOrCreateTimesheet(id, vehicleId);
-      window.location.href = `/puantaj/${timesheet.id}`;
+      const timesheet = await getOrCreateTimesheet(
+        id,
+        puantajPick.vehicleId,
+        puantajPickYil,
+        puantajPickAy,
+      );
+      setPuantajPick(null);
+      router.push(`/puantaj/${timesheet.id}`);
     } catch (err) {
       toast({
         title: "Hata",
         description: err instanceof Error ? err.message : "Puantaj açılamadı",
         variant: "destructive",
       });
-      setPuantajLoadingVehicleId(null);
+    } finally {
+      setPuantajSubmitting(false);
     }
   };
 
@@ -480,11 +509,10 @@ export default function ProjectDetailPage() {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => handlePuantajGir(pv.vehicle.id)}
-                            disabled={puantajLoadingVehicleId === pv.vehicle.id}
+                            onClick={() => openPuantajPickDialog(pv.vehicle.id, pv.vehicle.plaka)}
                           >
                             <ClipboardList className="w-3 h-3 mr-1" />
-                            {puantajLoadingVehicleId === pv.vehicle.id ? "Açılıyor..." : "Puantaj gir"}
+                            Puantaj gir
                           </Button>
                         </TableCell>
                         <TableCell>
@@ -580,6 +608,60 @@ export default function ProjectDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!puantajPick} onOpenChange={(open) => !open && setPuantajPick(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Puantaj dönemi — {puantajPick?.plaka}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="space-y-2">
+              <Label>Yıl</Label>
+              <Select
+                value={puantajPickYil.toString()}
+                onValueChange={(value) => setPuantajPickYil(parseInt(value, 10))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ay</Label>
+              <Select
+                value={puantajPickAy.toString()}
+                onValueChange={(value) => setPuantajPickAy(parseInt(value, 10))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((m, idx) => (
+                    <SelectItem key={idx + 1} value={String(idx + 1)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPuantajPick(null)}>
+              İptal
+            </Button>
+            <Button onClick={handlePuantajConfirm} disabled={puantajSubmitting}>
+              {puantajSubmitting ? "Açılıyor…" : "Puantaja git"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Route assignment dialog */}
       <Dialog open={!!routeAssignVehicle} onOpenChange={() => setRouteAssignVehicle(null)}>
