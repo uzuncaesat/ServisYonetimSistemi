@@ -36,6 +36,10 @@ import { ArrowLeft, Layers, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, getDaysInMonth, calculateTimesheetTotals } from "@/lib/utils";
+import {
+  getTurkishPublicHolidayName,
+  isTurkishPublicHoliday,
+} from "@/lib/tr-public-holidays";
 
 interface Route {
   id: string;
@@ -109,6 +113,46 @@ const monthNames = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
 ];
 
+type DayHighlightKind = "normal" | "weekend" | "holiday";
+
+interface DayHighlight {
+  kind: DayHighlightKind;
+  title?: string;
+}
+
+const dayHighlightClasses: Record<
+  DayHighlightKind,
+  { cell: string; input: string }
+> = {
+  normal: { cell: "", input: "" },
+  weekend: {
+    cell: "bg-amber-100 dark:bg-amber-900/30",
+    input:
+      "bg-amber-50 dark:bg-amber-900/20 focus:bg-amber-100 dark:focus:bg-amber-900/40",
+  },
+  holiday: {
+    cell: "bg-red-100 dark:bg-red-900/30",
+    input:
+      "bg-red-50 dark:bg-red-900/20 focus:bg-red-100 dark:focus:bg-red-900/40",
+  },
+};
+
+function getDayHighlight(
+  day: number,
+  yil: number,
+  ay: number,
+  isWeekendFn: (day: number) => boolean
+): DayHighlight {
+  const holidayName = getTurkishPublicHolidayName(yil, ay, day);
+  if (holidayName) {
+    return { kind: "holiday", title: holidayName };
+  }
+  if (isWeekendFn(day)) {
+    return { kind: "weekend" };
+  }
+  return { kind: "normal" };
+}
+
 export default function TimesheetDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -124,6 +168,7 @@ export default function TimesheetDetailPage() {
   const [bulkEndDay, setBulkEndDay] = useState<number>(31);
   const [bulkSeferSayisi, setBulkSeferSayisi] = useState<number>(0);
   const [bulkIncludeWeekends, setBulkIncludeWeekends] = useState(false);
+  const [bulkIncludeHolidays, setBulkIncludeHolidays] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: timesheet, isLoading } = useQuery({
@@ -208,22 +253,25 @@ export default function TimesheetDetailPage() {
       const dow = d.getDay();
       return dow === 0 || dow === 6;
     };
+    const isHolidayDay = (day: number) =>
+      isTurkishPublicHoliday(timesheet.yil, timesheet.ay, day);
     const start = Math.max(1, Math.min(bulkStartDay, bulkEndDay));
     const end = Math.min(daysInMonth, Math.max(bulkStartDay, bulkEndDay));
 
     setGridData((prev) => {
       const newData = new Map(prev);
       for (let day = start; day <= end; day++) {
-        if (bulkIncludeWeekends || !isWeekendDay(day)) {
-          newData.set(`${bulkRouteId}-${day}`, bulkSeferSayisi);
-        }
+        const skipWeekend = !bulkIncludeWeekends && isWeekendDay(day);
+        const skipHoliday = !bulkIncludeHolidays && isHolidayDay(day);
+        if (skipWeekend || skipHoliday) continue;
+        newData.set(`${bulkRouteId}-${day}`, bulkSeferSayisi);
       }
       return newData;
     });
     setHasChanges(true);
     setBulkOpen(false);
     toast({ title: "Toplu puantaj uygulandı", description: `${start}-${end} arası ${bulkSeferSayisi} sefer girildi.` });
-  }, [timesheet, bulkRouteId, bulkStartDay, bulkEndDay, bulkSeferSayisi, bulkIncludeWeekends, toast]);
+  }, [timesheet, bulkRouteId, bulkStartDay, bulkEndDay, bulkSeferSayisi, bulkIncludeWeekends, bulkIncludeHolidays, toast]);
 
   const handleSave = () => {
     if (!timesheet) return;
@@ -369,6 +417,7 @@ export default function TimesheetDetailPage() {
                 setBulkEndDay(daysInMonth);
                 setBulkSeferSayisi(0);
                 setBulkIncludeWeekends(false);
+                setBulkIncludeHolidays(false);
                 setBulkOpen(true);
               }}
             >
@@ -394,16 +443,24 @@ export default function TimesheetDetailPage() {
                       Güzergah
                     </th>
                     <th className="border p-2 text-right min-w-[80px]">Fiyat</th>
-                    {days.map((day) => (
-                      <th
-                        key={day}
-                        className={`border p-1 text-center min-w-[40px] ${
-                          isWeekend(day) ? "bg-amber-100 dark:bg-amber-900/30" : ""
-                        }`}
-                      >
-                        {day}
-                      </th>
-                    ))}
+                    {days.map((day) => {
+                      const highlight = getDayHighlight(
+                        day,
+                        timesheet.yil,
+                        timesheet.ay,
+                        isWeekend
+                      );
+                      const classes = dayHighlightClasses[highlight.kind];
+                      return (
+                        <th
+                          key={day}
+                          title={highlight.title}
+                          className={`border p-1 text-center min-w-[40px] ${classes.cell}`}
+                        >
+                          {day}
+                        </th>
+                      );
+                    })}
                     <th className="border p-2 text-center min-w-[60px]">Top.</th>
                     <th className="border p-2 text-right min-w-[100px]">Tutar</th>
                   </tr>
@@ -420,11 +477,18 @@ export default function TimesheetDetailPage() {
                       {days.map((day) => {
                         const key = `${route.id}-${day}`;
                         const value = gridData.get(key) || "";
-                        const weekend = isWeekend(day);
+                        const highlight = getDayHighlight(
+                          day,
+                          timesheet.yil,
+                          timesheet.ay,
+                          isWeekend
+                        );
+                        const classes = dayHighlightClasses[highlight.kind];
                         return (
                           <td
                             key={day}
-                            className={`border p-0 ${weekend ? "bg-amber-100 dark:bg-amber-900/30" : ""}`}
+                            title={highlight.title}
+                            className={`border p-0 ${classes.cell}`}
                           >
                             <Input
                               type="number"
@@ -433,9 +497,7 @@ export default function TimesheetDetailPage() {
                               onChange={(e) =>
                                 handleCellChange(route.id, day, e.target.value)
                               }
-                              className={`w-full h-8 text-center border-0 rounded-none p-1 ${
-                                weekend ? "bg-amber-50 dark:bg-amber-900/20 focus:bg-amber-100 dark:focus:bg-amber-900/40" : ""
-                              }`}
+                              className={`w-full h-8 text-center border-0 rounded-none p-1 ${classes.input}`}
                             />
                           </td>
                         );
@@ -450,6 +512,13 @@ export default function TimesheetDetailPage() {
                   ))}
                 </tbody>
               </table>
+              <p className="mt-3 text-xs text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-sm bg-amber-100 dark:bg-amber-900/30 align-middle mr-1" />
+                Sarı: hafta sonu
+                <span className="mx-2">·</span>
+                <span className="inline-block w-3 h-3 rounded-sm bg-red-100 dark:bg-red-900/30 align-middle mr-1" />
+                Kırmızı: resmi tatil
+              </p>
             </div>
           )}
         </CardContent>
@@ -516,6 +585,16 @@ export default function TimesheetDetailPage() {
               />
               <Label htmlFor="bulk-weekends" className="cursor-pointer">
                 Hafta sonlarını dahil et (Cumartesi-Pazar)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="bulk-holidays"
+                checked={bulkIncludeHolidays}
+                onCheckedChange={(checked) => setBulkIncludeHolidays(checked === true)}
+              />
+              <Label htmlFor="bulk-holidays" className="cursor-pointer">
+                Resmi tatilleri dahil et
               </Label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
