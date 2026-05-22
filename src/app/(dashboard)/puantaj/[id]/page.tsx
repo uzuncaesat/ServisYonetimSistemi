@@ -32,8 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Layers, Save, Trash2 } from "lucide-react";
+import { Layers, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/layout/back-button";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, getDaysInMonth, calculateTimesheetTotals } from "@/lib/utils";
 import {
@@ -340,11 +341,7 @@ export default function TimesheetDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/puantaj">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref="/puantaj" />
           <div>
             <h1 className="text-2xl font-bold">
               Puantaj - {monthNames[timesheet.ay - 1]} {timesheet.yil}

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/layout/back-button";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -90,11 +90,7 @@ export default function EditSupplierPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/tedarikciler/${id}`}>
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref={`/tedarikciler/${id}`} />
         <div>
           <h1 className="text-2xl font-bold">Tedarikçi Düzenle</h1>
           <p className="text-muted-foreground">{supplier?.firmaAdi}</p>

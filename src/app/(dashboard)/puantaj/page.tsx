@@ -88,8 +88,12 @@ async function fetchProjectVehicles(
   return res.json();
 }
 
-async function fetchTimesheets(): Promise<Timesheet[]> {
-  const res = await fetch("/api/timesheets");
+async function fetchTimesheets(yil: number, ay: number): Promise<Timesheet[]> {
+  const params = new URLSearchParams({
+    yil: yil.toString(),
+    ay: ay.toString(),
+  });
+  const res = await fetch(`/api/timesheets?${params}`);
   if (!res.ok) throw new Error("Puantajlar yüklenemedi");
   return res.json();
 }
@@ -142,6 +146,8 @@ export default function TimesheetPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [listFilterYil, setListFilterYil] = useState<number>(currentYear);
+  const [listFilterAy, setListFilterAy] = useState<number>(currentMonth);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: projects } = useQuery({
@@ -156,8 +162,8 @@ export default function TimesheetPage() {
   });
 
   const { data: timesheets, isLoading: timesheetsLoading } = useQuery({
-    queryKey: ["timesheets"],
-    queryFn: fetchTimesheets,
+    queryKey: ["timesheets", listFilterYil, listFilterAy],
+    queryFn: () => fetchTimesheets(listFilterYil, listFilterAy),
   });
 
   const createMutation = useMutation({
@@ -337,17 +343,55 @@ export default function TimesheetPage() {
       </Card>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="text-sm font-semibold tracking-tight">
             Mevcut puantajlar
           </h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Liste — Yıl</Label>
+              <Select
+                value={listFilterYil.toString()}
+                onValueChange={(value) => setListFilterYil(parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Liste — Ay</Label>
+              <Select
+                value={listFilterAy.toString()}
+                onValueChange={(value) => setListFilterAy(parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((month, idx) => (
+                    <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {!timesheetsLoading && !hasTimesheets ? (
           <EmptyState
             icon={ClipboardList}
-            title="Henüz puantaj yok"
-            description="Yukarıdan yeni bir puantaj oluşturun."
+            title="Bu dönem için puantaj yok"
+            description={`${monthNames[listFilterAy - 1]} ${listFilterYil} döneminde kayıt bulunmuyor. Yukarıdan yeni puantaj oluşturabilirsiniz.`}
           />
         ) : (
           <div className="overflow-hidden rounded-lg border border-border bg-card">

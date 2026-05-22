@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,18 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ArrowLeft,
-  Edit,
-  Car,
-  User,
-  Building2,
-  FolderKanban,
-  FileText,
-  AlertCircle,
-  ShieldCheck,
-  CalendarClock,
-} from "lucide-react";
+import { Edit, Car, User, Building2, FolderKanban, FileText, AlertCircle, ShieldCheck, CalendarClock } from "lucide-react";
 import Link from "next/link";
 import { DocumentList } from "@/components/documents/document-list";
 import { formatDate } from "@/lib/utils";
@@ -153,11 +143,7 @@ export default function VehicleDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/araclar">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref="/araclar" />
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Car className="w-6 h-6" />

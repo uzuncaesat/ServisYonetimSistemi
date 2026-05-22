@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Edit, User, Car, FileText, Plus, X } from "lucide-react";
+import { Edit, User, Car, FileText, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { DocumentList } from "@/components/documents/document-list";
 
@@ -140,11 +141,7 @@ export default function DriverDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/soforler">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref="/soforler" />
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <User className="w-6 h-6" />

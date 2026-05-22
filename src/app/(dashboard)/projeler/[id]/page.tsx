@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,8 +40,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, FolderKanban, Car, Route, Plus, Trash2, MapPin, ClipboardList } from "lucide-react";
+import { Edit, FolderKanban, Car, Route, Plus, Trash2, MapPin, ClipboardList } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/layout/back-button";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -149,6 +150,38 @@ const monthNames = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ];
 
+interface ProjectTimesheet {
+  id: string;
+  vehicle: { id: string };
+  entries: Array<{ seferSayisi: number }>;
+}
+
+async function fetchProjectTimesheets(
+  projectId: string,
+  yil: number,
+  ay: number,
+): Promise<ProjectTimesheet[]> {
+  const params = new URLSearchParams({
+    projectId,
+    yil: yil.toString(),
+    ay: ay.toString(),
+  });
+  const res = await fetch(`/api/timesheets?${params}`);
+  if (!res.ok) throw new Error("Puantajlar yüklenemedi");
+  return res.json();
+}
+
+function getPuantajStatus(
+  vehicleId: string,
+  timesheets: ProjectTimesheet[] | undefined,
+): { kind: "none" } | { kind: "empty"; timesheetId: string } | { kind: "filled"; timesheetId: string } {
+  const ts = timesheets?.find((t) => t.vehicle.id === vehicleId);
+  if (!ts) return { kind: "none" };
+  const trips = ts.entries.reduce((sum, e) => sum + e.seferSayisi, 0);
+  if (trips === 0) return { kind: "empty", timesheetId: ts.id };
+  return { kind: "filled", timesheetId: ts.id };
+}
+
 async function getOrCreateTimesheet(
   projectId: string,
   vehicleId: string,
@@ -172,7 +205,10 @@ async function getOrCreateTimesheet(
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const activeTab =
+    searchParams.get("tab") === "guzergahlar" ? "guzergahlar" : "araclar";
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -185,6 +221,8 @@ export default function ProjectDetailPage() {
     assignedRouteIds: string[];
   } | null>(null);
   const [puantajPick, setPuantajPick] = useState<{ vehicleId: string; plaka: string } | null>(null);
+  const [puantajViewYil, setPuantajViewYil] = useState(currentYear);
+  const [puantajViewAy, setPuantajViewAy] = useState(currentMonth);
   const [puantajPickYil, setPuantajPickYil] = useState(currentYear);
   const [puantajPickAy, setPuantajPickAy] = useState(currentMonth);
   const [puantajSubmitting, setPuantajSubmitting] = useState(false);
@@ -198,6 +236,20 @@ export default function ProjectDetailPage() {
     queryKey: ["vehicles"],
     queryFn: fetchAllVehicles,
   });
+
+  const { data: projectTimesheets } = useQuery({
+    queryKey: ["timesheets", id, puantajViewYil, puantajViewAy],
+    queryFn: () => fetchProjectTimesheets(id, puantajViewYil, puantajViewAy),
+    enabled: !!id,
+  });
+
+  const handleTabChange = (value: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (value === "guzergahlar") next.set("tab", "guzergahlar");
+    else next.delete("tab");
+    const qs = next.toString();
+    router.replace(qs ? `/projeler/${id}?${qs}` : `/projeler/${id}`, { scroll: false });
+  };
 
   // Filter vehicles not already in project
   const assignedVehicleIds = project?.vehicles.map((v) => v.vehicle.id) || [];
@@ -265,8 +317,8 @@ export default function ProjectDetailPage() {
   });
 
   const openPuantajPickDialog = (vehicleId: string, plaka: string) => {
-    setPuantajPickYil(currentYear);
-    setPuantajPickAy(currentMonth);
+    setPuantajPickYil(puantajViewYil);
+    setPuantajPickAy(puantajViewAy);
     setPuantajPick({ vehicleId, plaka });
   };
 
@@ -281,6 +333,7 @@ export default function ProjectDetailPage() {
         puantajPickAy,
       );
       setPuantajPick(null);
+      queryClient.invalidateQueries({ queryKey: ["timesheets", id] });
       router.push(`/puantaj/${timesheet.id}`);
     } catch (err) {
       toast({
@@ -321,11 +374,7 @@ export default function ProjectDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/projeler">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref="/projeler" />
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <FolderKanban className="w-6 h-6" />
@@ -376,7 +425,7 @@ export default function ProjectDetailPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="araclar">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="araclar">
             <Car className="w-4 h-4 mr-2" />
@@ -396,8 +445,49 @@ export default function ProjectDetailPage() {
 
         <TabsContent value="araclar" className="mt-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Projeye Atanmış Araçlar</CardTitle>
+            <CardHeader className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle>Projeye Atanmış Araçlar</CardTitle>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Puantaj dönemi — Yıl</Label>
+                    <Select
+                      value={puantajViewYil.toString()}
+                      onValueChange={(v) => setPuantajViewYil(parseInt(v, 10))}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Ay</Label>
+                    <Select
+                      value={puantajViewAy.toString()}
+                      onValueChange={(v) => setPuantajViewAy(parseInt(v, 10))}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {monthNames.map((m, idx) => (
+                          <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
               <Dialog open={isAddVehicleOpen} onOpenChange={setIsAddVehicleOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -448,6 +538,7 @@ export default function ProjectDetailPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               {project.vehicles.length === 0 ? (
@@ -467,7 +558,12 @@ export default function ProjectDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {project.vehicles.map((pv) => (
+                    {project.vehicles.map((pv) => {
+                      const puantajStatus = getPuantajStatus(
+                        pv.vehicle.id,
+                        projectTimesheets,
+                      );
+                      return (
                       <TableRow key={pv.id}>
                         <TableCell>
                           <Link
@@ -506,14 +602,39 @@ export default function ProjectDetailPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => openPuantajPickDialog(pv.vehicle.id, pv.vehicle.plaka)}
-                          >
-                            <ClipboardList className="w-3 h-3 mr-1" />
-                            Puantaj gir
-                          </Button>
+                          <div className="flex flex-col gap-1.5">
+                            {puantajStatus.kind === "none" && (
+                              <Badge variant="outline" className="w-fit text-muted-foreground">
+                                Girilmedi
+                              </Badge>
+                            )}
+                            {puantajStatus.kind === "empty" && (
+                              <Badge variant="secondary" className="w-fit bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                                Boş
+                              </Badge>
+                            )}
+                            {puantajStatus.kind === "filled" && (
+                              <Badge variant="secondary" className="w-fit bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                                Girildi
+                              </Badge>
+                            )}
+                            {puantajStatus.kind === "none" ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => openPuantajPickDialog(pv.vehicle.id, pv.vehicle.plaka)}
+                              >
+                                <ClipboardList className="w-3 h-3 mr-1" />
+                                Puantaj gir
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/puantaj/${puantajStatus.timesheetId}`}>
+                                  {puantajStatus.kind === "filled" ? "Görüntüle" : "Düzenle"}
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Button
@@ -525,7 +646,8 @@ export default function ProjectDetailPage() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -565,7 +687,14 @@ export default function ProjectDetailPage() {
                   <TableBody>
                     {project.routes.map((route) => (
                       <TableRow key={route.id}>
-                        <TableCell className="font-medium">{route.ad}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`/projeler/${id}/guzergahlar/${route.id}`}
+                            className="text-primary hover:underline"
+                          >
+                            {route.ad}
+                          </Link>
+                        </TableCell>
                         <TableCell>{route.baslangicNoktasi || "-"}</TableCell>
                         <TableCell>{route.bitisNoktasi || "-"}</TableCell>
                         <TableCell>{route.km || "-"}</TableCell>

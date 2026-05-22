@@ -20,6 +20,7 @@ export async function GET(
                 vehicle: {
                   include: {
                     supplier: true,
+                    driver: true,
                   },
                 },
               },

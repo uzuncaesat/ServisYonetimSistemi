@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Download, Factory, Building2, Eye, Truck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
@@ -79,6 +80,20 @@ async function fetchVehiclesForReport(): Promise<VehicleOption[]> {
   return data;
 }
 
+interface VehicleProjectOption {
+  id: string;
+  ad: string;
+}
+
+async function fetchVehicleProjects(vehicleId: string): Promise<VehicleProjectOption[]> {
+  const res = await fetch(`/api/vehicles/${vehicleId}`);
+  if (!res.ok) throw new Error("Araç projeleri yüklenemedi");
+  const data = await res.json() as {
+    projects: Array<{ project: { id: string; ad: string } }>;
+  };
+  return data.projects.map((p) => ({ id: p.project.id, ad: p.project.ad }));
+}
+
 export default function ReportsPage() {
   const { toast } = useToast();
   const { data: session } = useSession();
@@ -86,6 +101,7 @@ export default function ReportsPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedVehicleReportId, setSelectedVehicleReportId] = useState<string>("");
+  const [selectedVehicleProjectIds, setSelectedVehicleProjectIds] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [reportType, setReportType] = useState<ReportType>("supplier");
@@ -116,6 +132,7 @@ export default function ReportsPage() {
       setReportType("supplier");
       setSelectedProjectId("");
       setSelectedVehicleReportId("");
+      setSelectedVehicleProjectIds([]);
     }
   }, [canGenerateFactory, reportType]);
 
@@ -123,7 +140,12 @@ export default function ReportsPage() {
     setSelectedSupplierId("");
     setSelectedProjectId("");
     setSelectedVehicleReportId("");
+    setSelectedVehicleProjectIds([]);
   }, [reportType]);
+
+  useEffect(() => {
+    setSelectedVehicleProjectIds([]);
+  }, [selectedVehicleReportId]);
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers"],
     queryFn: fetchSuppliers,
@@ -139,6 +161,18 @@ export default function ReportsPage() {
     queryFn: fetchVehiclesForReport,
     enabled: reportType === "vehicle",
   });
+
+  const { data: vehicleProjects } = useQuery({
+    queryKey: ["vehicle-projects", selectedVehicleReportId],
+    queryFn: () => fetchVehicleProjects(selectedVehicleReportId),
+    enabled: reportType === "vehicle" && !!selectedVehicleReportId,
+  });
+
+  useEffect(() => {
+    if (vehicleProjects?.length) {
+      setSelectedVehicleProjectIds(vehicleProjects.map((p) => p.id));
+    }
+  }, [vehicleProjects]);
 
   const handlePreview = async () => {
     if (reportType === "supplier" && !selectedSupplierId) {
@@ -164,6 +198,10 @@ export default function ReportsPage() {
         toast({ title: "Hata", description: "Lütfen bir araç (plaka) seçin", variant: "destructive" });
         return;
       }
+      if (selectedVehicleProjectIds.length === 0) {
+        toast({ title: "Hata", description: "En az bir proje seçin", variant: "destructive" });
+        return;
+      }
     }
     setPreviewLoading(true);
     setPreviewOpen(true);
@@ -178,6 +216,7 @@ export default function ReportsPage() {
         params.set("projectId", selectedProjectId);
       } else if (reportType === "vehicle") {
         params.set("vehicleId", selectedVehicleReportId);
+        params.set("projectIds", selectedVehicleProjectIds.join(","));
       } else {
         params.set("supplierId", selectedSupplierId);
       }
@@ -217,6 +256,10 @@ export default function ReportsPage() {
         toast({ title: "Hata", description: "Lütfen bir araç (plaka) seçin", variant: "destructive" });
         return;
       }
+      if (selectedVehicleProjectIds.length === 0) {
+        toast({ title: "Hata", description: "En az bir proje seçin", variant: "destructive" });
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -230,6 +273,7 @@ export default function ReportsPage() {
         params.set("projectId", selectedProjectId);
       } else if (reportType === "vehicle") {
         params.set("vehicleId", selectedVehicleReportId);
+        params.set("projectIds", selectedVehicleProjectIds.join(","));
       } else {
         params.set("supplierId", selectedSupplierId);
       }
@@ -297,7 +341,13 @@ export default function ReportsPage() {
       ? !!selectedSupplierId
       : reportType === "factory"
         ? !!selectedProjectId
-        : !!selectedVehicleReportId;
+        : !!selectedVehicleReportId && selectedVehicleProjectIds.length > 0;
+
+  const toggleVehicleProject = (projectId: string, checked: boolean) => {
+    setSelectedVehicleProjectIds((prev) =>
+      checked ? [...prev, projectId] : prev.filter((id) => id !== projectId)
+    );
+  };
 
   return (
     <div>
@@ -369,7 +419,7 @@ export default function ReportsPage() {
                 )}
                 {reportType === "vehicle" && (
                   <p className="text-xs text-muted-foreground">
-                    Araç: Sadece seçtiğiniz plaka; puantaj ve ek işler tedarikçi birim fiyatlarıyla özetlenir.
+                    Araç: Seçilen plaka ve projeler; puantaj ve ek işler tedarikçi birim fiyatlarıyla özetlenir.
                   </p>
                 )}
               </div>
@@ -428,6 +478,62 @@ export default function ReportsPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {selectedVehicleReportId && (
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Projeler</Label>
+                          {vehicleProjects && vehicleProjects.length > 0 && (
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 text-xs"
+                                onClick={() =>
+                                  setSelectedVehicleProjectIds(
+                                    vehicleProjects.map((p) => p.id)
+                                  )
+                                }
+                              >
+                                Tümünü seç
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 text-xs"
+                                onClick={() => setSelectedVehicleProjectIds([])}
+                              >
+                                Temizle
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {!vehicleProjects?.length ? (
+                          <p className="text-xs text-muted-foreground">
+                            Bu araç henüz bir projeye atanmamış.
+                          </p>
+                        ) : (
+                          <div className="max-h-40 overflow-y-auto rounded-md border p-3 space-y-2">
+                            {vehicleProjects.map((p) => (
+                              <div key={p.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`vehicle-project-${p.id}`}
+                                  checked={selectedVehicleProjectIds.includes(p.id)}
+                                  onCheckedChange={(checked) =>
+                                    toggleVehicleProject(p.id, checked === true)
+                                  }
+                                />
+                                <Label
+                                  htmlFor={`vehicle-project-${p.id}`}
+                                  className="cursor-pointer text-sm font-normal"
+                                >
+                                  {p.ad}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

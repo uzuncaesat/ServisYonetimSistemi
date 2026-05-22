@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VehicleExpenseFormData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+
 import { ExpenseForm } from "@/components/expense/expense-form";
 
 interface Vehicle {
@@ -110,11 +111,7 @@ export default function EditExpensePage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/giderler">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref="/giderler" />
         <div>
           <h1 className="text-2xl font-bold">Gideri Düzenle</h1>
           <p className="text-muted-foreground">{expense.tarih.slice(0, 10)}</p>

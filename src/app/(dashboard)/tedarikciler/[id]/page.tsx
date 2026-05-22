@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Edit, Building2, Car, UserPlus } from "lucide-react";
+import { Edit, Building2, Car, UserPlus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 
@@ -112,11 +113,7 @@ export default function SupplierDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/tedarikciler">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref="/tedarikciler" />
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Building2 className="w-6 h-6" />

@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Factory } from "lucide-react";
+import { Factory } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/layout/back-button";
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { canEditFactoryPrice } from "@/lib/auth";
@@ -99,11 +100,13 @@ function NewRouteForm() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={preselectedProjectId ? `/projeler/${preselectedProjectId}` : "/guzergahlar"}>
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton
+          fallbackHref={
+            preselectedProjectId
+              ? `/projeler/${preselectedProjectId}`
+              : "/guzergahlar"
+          }
+        />
         <div>
           <h1 className="text-2xl font-bold">Yeni Güzergah</h1>
           <p className="text-muted-foreground">Yeni bir güzergah tanımlayın</p>

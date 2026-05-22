@@ -6,12 +6,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { projectSchema, ProjectFormData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+
 import Link from "next/link";
 
 async function createProject(data: ProjectFormData) {
@@ -57,11 +58,7 @@ export default function NewProjectPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/projeler">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref="/projeler" />
         <div>
           <h1 className="text-2xl font-bold">Yeni Proje</h1>
           <p className="text-muted-foreground">Yeni bir servis projesi oluşturun</p>

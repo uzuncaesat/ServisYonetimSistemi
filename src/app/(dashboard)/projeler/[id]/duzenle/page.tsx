@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/layout/back-button";
 import { useEffect } from "react";
 
 async function fetchProject(id: string) {
@@ -92,11 +92,7 @@ export default function EditProjectPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/projeler/${id}`}>
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref={`/projeler/${id}`} />
         <div>
           <h1 className="text-2xl font-bold">Proje Düzenle</h1>
           <p className="text-muted-foreground">{project?.ad}</p>

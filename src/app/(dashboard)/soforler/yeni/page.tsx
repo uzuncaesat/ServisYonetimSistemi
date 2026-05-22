@@ -6,11 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { driverSchema, DriverFormData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+
 import Link from "next/link";
 
 async function createDriver(data: DriverFormData) {
@@ -56,11 +57,7 @@ export default function NewDriverPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/soforler">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref="/soforler" />
         <div>
           <h1 className="text-2xl font-bold">Yeni Şoför</h1>
           <p className="text-muted-foreground">Yeni bir şoför kaydı oluşturun</p>

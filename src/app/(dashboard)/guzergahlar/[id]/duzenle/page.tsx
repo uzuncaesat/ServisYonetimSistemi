@@ -6,11 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { routeSchema, RouteFormData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Factory } from "lucide-react";
+import { Factory } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -96,11 +97,7 @@ export default function EditRoutePage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/guzergahlar">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref="/guzergahlar" />
         <div>
           <h1 className="text-2xl font-bold">Güzergah Düzenle</h1>
           <p className="text-muted-foreground">{route?.ad}</p>

@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/layout/back-button";
 import { useEffect } from "react";
 
 function toDateInputValue(value: string | null | undefined): string {
@@ -146,11 +147,7 @@ export default function EditVehiclePage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/araclar/${id}`}>
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+        <BackButton fallbackHref={`/araclar/${id}`} />
         <div>
           <h1 className="text-2xl font-bold">Araç Düzenle</h1>
           <p className="text-muted-foreground">{vehicle?.plaka}</p>

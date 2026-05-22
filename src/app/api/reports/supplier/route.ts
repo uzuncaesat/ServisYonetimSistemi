@@ -79,6 +79,13 @@ export async function GET(req: NextRequest) {
           { status: 400 }
         );
       }
+      const projectIdsParam = searchParams.get("projectIds");
+      if (!projectIdsParam?.trim()) {
+        return NextResponse.json(
+          { error: "Araç raporu için en az bir proje seçilmelidir" },
+          { status: 400 }
+        );
+      }
     } else {
       // Tedarikçi raporu: tedarikçi portalından gelen istekte session'daki supplierId kullanılır
       if (session!.user.role === "SUPPLIER") {
@@ -180,9 +187,27 @@ export async function GET(req: NextRequest) {
           }
         : { ad: vehicle.plaka };
 
+      const projectIdsRaw = searchParams.get("projectIds")!.split(",").map((s) => s.trim()).filter(Boolean);
+      const validAssignments = await prisma.projectVehicle.findMany({
+        where: {
+          vehicleId: vehicle.id,
+          projectId: { in: projectIdsRaw },
+          project: { ...getOrgFilter(session!) },
+        },
+        select: { projectId: true },
+      });
+      const allowedProjectIds = validAssignments.map((a) => a.projectId);
+      if (allowedProjectIds.length === 0) {
+        return NextResponse.json(
+          { error: "Seçilen projeler bu araca atanmamış veya erişim yok" },
+          { status: 400 }
+        );
+      }
+
       timesheets = await prisma.timesheet.findMany({
         where: {
           vehicleId: vehicle.id,
+          projectId: { in: allowedProjectIds },
           yil: parseInt(yil!, 10),
           ay: parseInt(ay!, 10),
         },
@@ -199,6 +224,7 @@ export async function GET(req: NextRequest) {
       extraWorks = await prisma.extraWork.findMany({
         where: {
           vehicleId: vehicle.id,
+          projectId: { in: allowedProjectIds },
           status: "APPROVED",
           tarih: {
             gte: startDate,
