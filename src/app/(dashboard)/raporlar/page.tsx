@@ -99,7 +99,7 @@ export default function ReportsPage() {
   const { data: session } = useSession();
   const canGenerateFactory = canGenerateFactoryReport(session?.user?.role);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedFactoryProjectIds, setSelectedFactoryProjectIds] = useState<string[]>([]);
   const [selectedVehicleReportId, setSelectedVehicleReportId] = useState<string>("");
   const [selectedVehicleProjectIds, setSelectedVehicleProjectIds] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
@@ -130,7 +130,7 @@ export default function ReportsPage() {
   useEffect(() => {
     if (!canGenerateFactory && (reportType === "factory" || reportType === "vehicle")) {
       setReportType("supplier");
-      setSelectedProjectId("");
+      setSelectedFactoryProjectIds([]);
       setSelectedVehicleReportId("");
       setSelectedVehicleProjectIds([]);
     }
@@ -138,7 +138,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setSelectedSupplierId("");
-    setSelectedProjectId("");
+    setSelectedFactoryProjectIds([]);
     setSelectedVehicleReportId("");
     setSelectedVehicleProjectIds([]);
   }, [reportType]);
@@ -155,6 +155,12 @@ export default function ReportsPage() {
     queryKey: ["projects"],
     queryFn: fetchProjects,
   });
+
+  useEffect(() => {
+    if (reportType === "factory" && projects?.length) {
+      setSelectedFactoryProjectIds(projects.map((p) => p.id));
+    }
+  }, [reportType, projects]);
 
   const { data: vehiclesForReport } = useQuery({
     queryKey: ["vehicles"],
@@ -184,8 +190,8 @@ export default function ReportsPage() {
         toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
         return;
       }
-      if (!selectedProjectId) {
-        toast({ title: "Hata", description: "Lütfen bir proje seçin", variant: "destructive" });
+      if (selectedFactoryProjectIds.length === 0) {
+        toast({ title: "Hata", description: "En az bir proje seçin", variant: "destructive" });
         return;
       }
     }
@@ -213,7 +219,7 @@ export default function ReportsPage() {
         preview: "1",
       });
       if (reportType === "factory") {
-        params.set("projectId", selectedProjectId);
+        params.set("projectIds", selectedFactoryProjectIds.join(","));
       } else if (reportType === "vehicle") {
         params.set("vehicleId", selectedVehicleReportId);
         params.set("projectIds", selectedVehicleProjectIds.join(","));
@@ -242,8 +248,8 @@ export default function ReportsPage() {
         toast({ title: "Hata", description: "Bu raporu oluşturma yetkiniz yok", variant: "destructive" });
         return;
       }
-      if (!selectedProjectId) {
-        toast({ title: "Hata", description: "Lütfen bir proje seçin", variant: "destructive" });
+      if (selectedFactoryProjectIds.length === 0) {
+        toast({ title: "Hata", description: "En az bir proje seçin", variant: "destructive" });
         return;
       }
     }
@@ -270,7 +276,7 @@ export default function ReportsPage() {
         reportType,
       });
       if (reportType === "factory") {
-        params.set("projectId", selectedProjectId);
+        params.set("projectIds", selectedFactoryProjectIds.join(","));
       } else if (reportType === "vehicle") {
         params.set("vehicleId", selectedVehicleReportId);
         params.set("projectIds", selectedVehicleProjectIds.join(","));
@@ -293,16 +299,15 @@ export default function ReportsPage() {
           : reportType === "vehicle"
             ? "arac-raporu"
             : "tedarikci-raporu";
-      const projectAd = projects?.find((p) => p.id === selectedProjectId)?.ad ?? selectedProjectId;
-      const vehiclePlakaSel =
-        reportType === "vehicle"
-          ? vehiclesForReport?.find((v) => v.id === selectedVehicleReportId)?.plaka
-          : "";
+      const factorySuffix =
+        selectedFactoryProjectIds.length === 1
+          ? (projects?.find((p) => p.id === selectedFactoryProjectIds[0])?.ad ?? "proje")
+          : `${selectedFactoryProjectIds.length}-proje`;
       const suffix =
         reportType === "factory"
-          ? projectAd
+          ? factorySuffix
           : reportType === "vehicle"
-            ? vehiclePlakaSel ?? ""
+            ? (vehiclesForReport?.find((v) => v.id === selectedVehicleReportId)?.plaka ?? "")
             : (suppliers?.find((s) => s.id === selectedSupplierId)?.firmaAdi ?? "");
       a.download = `${prefix}-${suffix}-${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`.replace(/[^a-zA-Z0-9.-]/g, "_");
       document.body.appendChild(a);
@@ -340,8 +345,14 @@ export default function ReportsPage() {
     reportType === "supplier"
       ? !!selectedSupplierId
       : reportType === "factory"
-        ? !!selectedProjectId
+        ? selectedFactoryProjectIds.length > 0
         : !!selectedVehicleReportId && selectedVehicleProjectIds.length > 0;
+
+  const toggleFactoryProject = (projectId: string, checked: boolean) => {
+    setSelectedFactoryProjectIds((prev) =>
+      checked ? [...prev, projectId] : prev.filter((id) => id !== projectId)
+    );
+  };
 
   const toggleVehicleProject = (projectId: string, checked: boolean) => {
     setSelectedVehicleProjectIds((prev) =>
@@ -414,7 +425,7 @@ export default function ReportsPage() {
                 </div>
                 {reportType === "factory" && (
                   <p className="text-xs text-muted-foreground">
-                    Fabrika: Projedeki tüm araçlar, fabrika fiyatlarıyla.
+                    Fabrika: Seçilen projelerdeki tüm araçlar, fabrika fiyatlarıyla.
                   </p>
                 )}
                 {reportType === "vehicle" && (
@@ -443,19 +454,58 @@ export default function ReportsPage() {
                   </>
                 ) : reportType === "factory" ? (
                   <>
-                    <Label>Proje</Label>
-                    <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Proje seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projects?.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.ad}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Projeler</Label>
+                        {projects && projects.length > 0 && (
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto p-0 text-xs"
+                              onClick={() =>
+                                setSelectedFactoryProjectIds(projects.map((p) => p.id))
+                              }
+                            >
+                              Tümünü seç
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto p-0 text-xs"
+                              onClick={() => setSelectedFactoryProjectIds([])}
+                            >
+                              Temizle
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {!projects?.length ? (
+                        <p className="text-xs text-muted-foreground">
+                          Tanımlı proje bulunmuyor.
+                        </p>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto rounded-md border p-3 space-y-2">
+                          {projects.map((project) => (
+                            <div key={project.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`factory-project-${project.id}`}
+                                checked={selectedFactoryProjectIds.includes(project.id)}
+                                onCheckedChange={(checked) =>
+                                  toggleFactoryProject(project.id, checked === true)
+                                }
+                              />
+                              <Label
+                                htmlFor={`factory-project-${project.id}`}
+                                className="cursor-pointer text-sm font-normal"
+                              >
+                                {project.ad}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>

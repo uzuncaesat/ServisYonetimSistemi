@@ -51,7 +51,6 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     let supplierId = searchParams.get("supplierId");
-    const projectId = searchParams.get("projectId");
     const vehicleIdParam = searchParams.get("vehicleId");
     const yil = searchParams.get("yil");
     const ay = searchParams.get("ay");
@@ -66,9 +65,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (isFactoryReport) {
-      if (!projectId || !yil || !ay) {
+      if (!yil || !ay) {
         return NextResponse.json(
-          { error: "Fabrika raporu için proje, yıl ve ay parametreleri zorunludur" },
+          { error: "Fabrika raporu için yıl ve ay parametreleri zorunludur" },
+          { status: 400 }
+        );
+      }
+      const factoryProjectIdsParam =
+        searchParams.get("projectIds") || searchParams.get("projectId");
+      if (!factoryProjectIdsParam?.trim()) {
+        return NextResponse.json(
+          { error: "Fabrika raporu için en az bir proje seçilmelidir" },
           { status: 400 }
         );
       }
@@ -117,27 +124,46 @@ export async function GET(req: NextRequest) {
     let reportEntity: { ad: string; vergiNo?: string | null; vergiDairesi?: string | null };
     /** Araç raporu için seçilen aracın plakası (puantajsız uyarı satırı) */
     let vehicleReportPlaka: string | null = null;
+    let factoryProjectIds: string[] = [];
 
     const useFactoryPricing = isFactoryReport;
 
     const startDate = new Date(parseInt(yil!, 10), parseInt(ay!, 10) - 1, 1);
     const endDate = new Date(parseInt(yil!, 10), parseInt(ay!, 10), 1);
 
-    if (isFactoryReport && projectId) {
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
+    if (isFactoryReport) {
+      const projectIdsRaw = (searchParams.get("projectIds") || searchParams.get("projectId") || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const allowedProjects = await prisma.project.findMany({
+        where: {
+          id: { in: projectIdsRaw },
+          ...getOrgFilter(session!),
+        },
+        select: { id: true, ad: true },
+        orderBy: { ad: "asc" },
       });
-      if (!project) {
+
+      if (allowedProjects.length === 0) {
         return NextResponse.json(
-          { error: "Proje bulunamadı" },
-          { status: 404 }
+          { error: "Seçilen projeler bulunamadı veya erişim yok" },
+          { status: 400 }
         );
       }
-      reportEntity = { ad: project.ad };
+
+      factoryProjectIds = allowedProjects.map((p) => p.id);
+      reportEntity = {
+        ad:
+          allowedProjects.length === 1
+            ? allowedProjects[0].ad
+            : allowedProjects.map((p) => p.ad).join(", "),
+      };
 
       timesheets = await prisma.timesheet.findMany({
         where: {
-          projectId,
+          projectId: { in: factoryProjectIds },
           yil: parseInt(yil!, 10),
           ay: parseInt(ay!, 10),
         },
@@ -153,7 +179,7 @@ export async function GET(req: NextRequest) {
 
       extraWorks = await prisma.extraWork.findMany({
         where: {
-          projectId,
+          projectId: { in: factoryProjectIds },
           status: "APPROVED",
           tarih: {
             gte: startDate,
@@ -346,17 +372,19 @@ export async function GET(req: NextRequest) {
     });
 
     // Fabrika: puantajı açılmamış araçları listele
-    if (isFactoryReport && projectId) {
+    if (isFactoryReport && factoryProjectIds.length > 0) {
       const projectVehicles = await prisma.projectVehicle.findMany({
-        where: { projectId },
-        include: { vehicle: true },
+        where: { projectId: { in: factoryProjectIds } },
+        include: { vehicle: true, project: true },
       });
-      const vehicleIdsWithTimesheet = new Set(timesheets.map((ts) => ts.vehicleId));
+      const timesheetKeys = new Set(
+        timesheets.map((ts) => `${ts.projectId}-${ts.vehicleId}`)
+      );
       for (const pv of projectVehicles) {
-        if (!vehicleIdsWithTimesheet.has(pv.vehicleId)) {
+        if (!timesheetKeys.has(`${pv.projectId}-${pv.vehicleId}`)) {
           summaryRows.push([
             pv.vehicle.plaka,
-            reportEntity.ad,
+            pv.project.ad,
             "Puantaj girilmemiş",
             "-",
             "0",
@@ -407,9 +435,9 @@ export async function GET(req: NextRequest) {
 
     // Generate report number
     let reportNo: string;
-    if (isFactoryReport && projectId) {
+    if (isFactoryReport && factoryProjectIds.length > 0) {
       const reportCount = await prisma.timesheet.count({
-        where: { projectId, yil: parseInt(yil!, 10) },
+        where: { projectId: { in: factoryProjectIds }, yil: parseInt(yil!, 10) },
       });
       reportNo = `FAB-${yil}-${String(parseInt(ay!, 10)).padStart(2, "0")}-${String(reportCount + 1).padStart(3, "0")}`;
     } else if (isVehicleReport && vehicleIdParam) {
@@ -550,7 +578,10 @@ export async function GET(req: NextRequest) {
               ...(reportKind === "factory"
                 ? [
                     {
-                      text: "Projedeki tüm araçlar (tüm tedarikçiler dahil)",
+                      text:
+                        factoryProjectIds.length > 1
+                          ? "Seçilen projelerdeki tüm araçlar (tüm tedarikçiler dahil)"
+                          : "Projedeki tüm araçlar (tüm tedarikçiler dahil)",
                       margin: [0, 0, 0, 10] as [number, number, number, number],
                       fontSize: 9,
                       color: "#64748b",
