@@ -1,8 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminAuth, getOrgFilter } from "@/lib/api-auth";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { requireAdminAuth, getOrgFilter, getOrgId, handleOrgError } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_ROLES = ["USER", "MANAGER", "ADMIN"] as const;
+
+const createUserSchema = z.object({
+  name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
+  email: z.string().email("Geçerli bir e-posta adresi giriniz"),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
+  role: z.enum(ALLOWED_ROLES, {
+    errorMap: () => ({ message: "Geçersiz rol. USER, MANAGER veya ADMIN olmalı." }),
+  }),
+});
 
 // GET - Tüm kullanıcıları listele (sadece ADMIN)
 export async function GET() {
@@ -27,6 +40,65 @@ export async function GET() {
     console.error("Users GET error:", error);
     return NextResponse.json(
       { error: "Kullanıcılar alınamadı" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Yeni kullanıcı oluştur (sadece ADMIN)
+export async function POST(req: NextRequest) {
+  try {
+    const auth = await requireAdminAuth();
+    if (auth.error) return auth.error;
+
+    const organizationId = getOrgId(auth.session!);
+
+    const body = await req.json();
+    const data = createUserSchema.parse(body);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Bu e-posta adresi zaten kullanılıyor" },
+        { status: 400 }
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: data.role,
+        emailVerified: true,
+        organizationId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.errors[0].message },
+        { status: 400 }
+      );
+    }
+    const orgError = handleOrgError(error);
+    if (orgError) return orgError;
+    console.error("Users POST error:", error);
+    return NextResponse.json(
+      { error: "Kullanıcı oluşturulamadı" },
       { status: 500 }
     );
   }

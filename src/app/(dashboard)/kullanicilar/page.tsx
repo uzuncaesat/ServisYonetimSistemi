@@ -40,6 +40,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { canManageUsers } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import { MoreHorizontal, Trash2, UserCog } from "lucide-react";
@@ -76,6 +86,26 @@ async function updateUserRole(id: string, role: string) {
   return res.json();
 }
 
+interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
+async function createUser(input: CreateUserInput) {
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Kullanıcı oluşturulamadı");
+  }
+  return res.json();
+}
+
 async function deleteUser(id: string) {
   const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
   if (!res.ok) {
@@ -91,6 +121,14 @@ export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const emptyForm: CreateUserInput = {
+    name: "",
+    email: "",
+    password: "",
+    role: "USER",
+  };
+  const [form, setForm] = useState<CreateUserInput>(emptyForm);
 
   const canAccess = canManageUsers(session?.user?.role);
 
@@ -117,6 +155,23 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "Rol güncellendi" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: "Kullanıcı oluşturuldu" });
+      setCreateOpen(false);
+      setForm(emptyForm);
     },
     onError: (error: Error) => {
       toast({
@@ -186,6 +241,11 @@ export default function UsersPage() {
       <PageHeader
         title="Kullanıcı yönetimi"
         description="Sistem kullanıcılarını ve rollerini yönetin."
+        actionLabel="Yeni kullanıcı"
+        onAction={() => {
+          setForm(emptyForm);
+          setCreateOpen(true);
+        }}
       />
 
       {!isLoading && !hasItems ? (
@@ -275,6 +335,87 @@ export default function UsersPage() {
           </Table>
         </div>
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni kullanıcı</DialogTitle>
+            <DialogDescription>
+              Yeni bir kullanıcı oluşturun ve rolünü belirleyin.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate(form);
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="name">Ad soyad</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ad soyad"
+                required
+                minLength={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-posta</Label>
+              <Input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="ornek@firma.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Şifre</Label>
+              <Input
+                id="password"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="En az 6 karakter"
+                required
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Rol</Label>
+              <Select
+                value={form.role}
+                onValueChange={(role) => setForm({ ...form, role })}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">Kullanıcı</SelectItem>
+                  <SelectItem value="MANAGER">Projeci</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+              >
+                İptal
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Oluşturuluyor…" : "Oluştur"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
