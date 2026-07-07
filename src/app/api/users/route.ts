@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { requireAdminAuth, getOrgFilter, getOrgId, handleOrgError } from "@/lib/api-auth";
+import { requireAdminAuth, getOrgFilter, getOrgId } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,18 @@ export async function POST(req: NextRequest) {
     const auth = await requireAdminAuth();
     if (auth.error) return auth.error;
 
-    const organizationId = getOrgId(auth.session!);
+    let organizationId: string | undefined;
+    try {
+      organizationId = getOrgId(auth.session!) ?? undefined;
+    } catch {
+      organizationId = undefined;
+    }
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: "Organizasyon kaydı bulunamadı. Sistem yöneticisi ile iletişime geçin." },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     const data = createUserSchema.parse(body);
@@ -94,8 +105,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const orgError = handleOrgError(error);
-    if (orgError) return orgError;
     console.error("Users POST error:", error);
     return NextResponse.json(
       { error: "Kullanıcı oluşturulamadı" },
